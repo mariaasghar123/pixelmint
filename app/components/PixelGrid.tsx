@@ -77,7 +77,8 @@ const PixelGrid: React.FC = () => {
         const initialX = -((totalGridWidthPx * initialScale - gridContainerRef.current.offsetWidth) / 2);
         const initialY = -((totalGridHeightPx * initialScale - gridContainerRef.current.offsetHeight) / 2);
         setTimeout(() => {
-          resetTransform(initialScale, initialX || 0, initialY || 0, 0);
+          resetTransform();
+          // If you need specific positioning, consider using setTransform instead
         }, 100);
       }
     }, [resetTransform, totalGridWidthPx, totalGridHeightPx]);
