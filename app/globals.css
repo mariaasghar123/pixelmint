@@ -24,3 +24,16 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+@font-face {
+    font-family: "Ari-W9500 Condensed Display";
+    src: url("https://db.onlinewebfonts.com/t/06c051a41d1193e6791d638b3760a646.eot");
+    src: url("https://db.onlinewebfonts.com/t/06c051a41d1193e6791d638b3760a646.eot?#iefix")format("embedded-opentype"),
+    url("https://db.onlinewebfonts.com/t/06c051a41d1193e6791d638b3760a646.woff2")format("woff2"),
+    url("https://db.onlinewebfonts.com/t/06c051a41d1193e6791d638b3760a646.woff")format("woff"),
+    url("https://db.onlinewebfonts.com/t/06c051a41d1193e6791d638b3760a646.ttf")format("truetype"),
+    url("https://db.onlinewebfonts.com/t/06c051a41d1193e6791d638b3760a646.svg#Ari-W9500 Condensed Display")format("svg");
+}
+
+.font-custom {
+  font-family: 'Ari-W9500 Condensed Display';
+}
