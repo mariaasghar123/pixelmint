@@ -3,15 +3,7 @@ import StatsBar from "./components/Statsbar";
 import PixelGrid from "./components/PixelGrid";
 import { FaUsers } from "react-icons/fa";
 import BuyerSection from "./components/BuyerSection";
-type BuyerData = {
-  id: string;
-  name: string;
-  pixelsBought: string;
-  position: string;
-  logoUrl: string;
-  rank: number | null;
-  tag?: string;
-};
+import { BuyerData } from "./components/BuyerSection";
 import StayConnected from "./components/StayConnected";
 
 // --- Dummy Data ---

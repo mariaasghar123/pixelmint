@@ -1,7 +1,7 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 
-interface BuyerData {
+export interface BuyerData {
   id: string;
   name: string;
   pixelsBought: string;
