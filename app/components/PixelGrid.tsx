@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   TransformWrapper,
   TransformComponent,
@@ -66,6 +67,7 @@ const DUMMY_INITIAL_BLOCKS = [
 ];
 
 const PixelGrid = () => {
+  const router = useRouter();
   const {
     gridWidthCells,
     gridHeightCells,
@@ -75,6 +77,8 @@ const PixelGrid = () => {
   } = DEFAULT_CONFIG;
   const totalGridWidthPx = gridWidthCells * cellSize;
   const totalGridHeightPx = gridHeightCells * cellSize;
+  const [reservedBlocks, setReservedBlocks] = useState([]);
+  const [selectedBlock, setSelectedBlock] = useState(null);
 
   const [hoverPixel, setHoverPixel] = useState(null);
   const [mouseCoords, setMouseCoords] = useState(null);
@@ -82,7 +86,11 @@ const PixelGrid = () => {
   const [placedBlocks] = useState(DUMMY_INITIAL_BLOCKS);
   const [magnifierMode, setMagnifierMode] = useState(false);
   const [magnifierZoom, setMagnifierZoom] = useState(2);
-  const gridContainerRef = useRef(null);
+  const gridContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [showConfirmMessage, setShowConfirmMessage] = useState(false);
+
+
   const magnifierSize = 200;
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -93,7 +101,24 @@ const PixelGrid = () => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState(null);
 
-  const handleMouseDown = (e) => {
+  const handleConfirmReservation = () => {
+    setIsConfirming(true);
+
+    setTimeout(() => {
+      // Reservation complete hone ke baad loader hatao
+      setIsConfirming(false);
+      setShowModal(false);
+
+      // Reserve pixels ko final list me add karo
+      if (selectedBlock) {
+        setReservedBlocks((prev) => [...prev, selectedBlock]);
+      }
+      setSelectedBlock(null);
+          setShowConfirmMessage(true);
+    }, 2000); // 2 sec ka fake delay (loading feel)
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!gridContainerRef.current) return;
     const rect = gridContainerRef.current.getBoundingClientRect();
     const x = Math.floor((e.clientX - rect.left) / cellSize);
@@ -102,7 +127,7 @@ const PixelGrid = () => {
     setIsSelecting(true);
   };
 
-  const handleMouseUp = (e) => {
+  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isSelecting || !selectionStart) return;
     const rect = gridContainerRef.current.getBoundingClientRect();
     const xEnd = Math.floor((e.clientX - rect.left) / cellSize);
@@ -275,7 +300,7 @@ const PixelGrid = () => {
   //   [cellSize, gridWidthCells, gridHeightCells]
   // );
   const handleMouseMove = useCallback(
-    (e) => {
+    (e: React.MouseEvent<HTMLDivElement>) => {
       if (!gridContainerRef.current) return;
       const rect = gridContainerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -384,8 +409,8 @@ const PixelGrid = () => {
                   {!showStatusButtons && (
                     <p className="text-gray-400 text-xs sm:text-sm">
                       Hold <span className="text-green-300">Ctrl + Scroll</span>{" "}
-                      to zoom in/out. Use{" "}
-                      <span className="text-green-300">+</span> to magnify.
+                      to zoom in/out. Current zoom: <span className="text-green-300">100%. </span> Hold
+                      <span className="text-green-300">Ctrl+Drag</span> to pan. Use the <span className="text-green-300">magnifier tool </span> for precision zooming.
                     </p>
                   )}
                 </div>
@@ -444,6 +469,7 @@ const PixelGrid = () => {
                     }}
                   />
                 )}
+
                 {isSelecting && selectionStart && mouseCoords && (
                   <div
                     className="absolute border-2 border-green-400 bg-green-400/10"
@@ -475,6 +501,57 @@ const PixelGrid = () => {
                     }}
                   ></div>
                 )}
+
+                {reservedBlocks
+                  .filter((b) => b !== null)
+                  .map((block, index) => (
+                    <div
+                      key={index}
+                      className="absolute border border-green-500 bg-green-700/30"
+                      style={{
+                        left: block.x,
+                        top: block.y,
+                        width: block.width,
+                        height: block.height,
+                      }}
+                    ></div>
+                  ))}
+
+                  {showConfirmMessage && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-green-800 p-6 rounded-2xl shadow-2xl text-center w-[340px] text-white border-2 border-green-600">
+      <h2 className="text-xl font-bold mb-3">
+        Pixels Reserved!
+      </h2>
+
+      <p className="text-sm opacity-90 mb-6">
+        You have successfully reserved these pixels.
+      </p>
+
+      <div className="flex justify-center gap-4">
+        <button
+  onClick={() => {
+    setShowConfirmMessage(false);
+    router.push("/login"); // navigate to login page
+  }}
+  className="bg-green-600 text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium"
+>
+  Continue
+</button>
+
+
+        <button
+          onClick={() => setShowConfirmMessage(false)}
+          className="bg-red-600  hover:bg-red-700 text-black px-4 py-2 rounded-lg font-semibold transition"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
                 {magnifierMode && mouseCoords && (
                   <div
@@ -622,9 +699,10 @@ const PixelGrid = () => {
                   {selectionData.width}px × {selectionData.height}px
                 </span>
                 <span className="float-right flex justify-between text-green-300">
-                  Total Area: 
-                  <span className="text-green-200">{selectionData.totalPixels}px</span>
-                   
+                  Total Area:
+                  <span className="text-green-200">
+                    {selectionData.totalPixels}px
+                  </span>
                 </span>
               </p>
               <p className="text-green-300 mt-2 flex justify-between text-lg text-center">
@@ -640,16 +718,15 @@ const PixelGrid = () => {
 
             <div className="flex justify-around font-custom">
               <button
-                className="bg-green-500 hover:bg-green-600 text-black px-6 py-2 rounded-lg"
-                onClick={() => {
-                  alert("Reservation Confirmed ✅");
-                  setShowModal(false);
-                }}
+                onClick={handleConfirmReservation}
+                disabled={isConfirming}
+                className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg  text-black"
               >
-                Confirm Reservation
+                {isConfirming ? "Confirming..." : "Confirm Reservation"}
               </button>
+
               <button
-                className="bg-red-600 hover:bg-red-700 text-black px-6 py-2 rounded-lg"
+                className="bg-red-600 hover:bg-red-700 text-black px-6 py-2 rounded-lg font-custom"
                 onClick={() => setShowModal(false)}
               >
                 Cancel
