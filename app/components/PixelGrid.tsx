@@ -65,6 +65,17 @@ const DUMMY_INITIAL_BLOCKS = [
   },
   { id: "b7", x: 50, y: 70, width: 10, height: 15, ownerId: "placeholder_red" },
 ];
+interface SelectionData {
+  width: number;
+  height: number;
+  totalPixels: number;
+  price: number;
+}
+interface MouseCoords {
+  x: number;
+  y: number;
+}
+
 
 const PixelGrid = () => {
   const router = useRouter();
@@ -77,11 +88,20 @@ const PixelGrid = () => {
   } = DEFAULT_CONFIG;
   const totalGridWidthPx = gridWidthCells * cellSize;
   const totalGridHeightPx = gridHeightCells * cellSize;
-  const [reservedBlocks, setReservedBlocks] = useState([]);
+  const [reservedBlocks, setReservedBlocks] = useState<Block[]>([]);
   const [selectedBlock, setSelectedBlock] = useState(null);
 
-  const [hoverPixel, setHoverPixel] = useState(null);
-  const [mouseCoords, setMouseCoords] = useState(null);
+  interface Block {
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    imageUrl?: string;
+    ownerId: string;
+  }
+  const [hoverPixel, setHoverPixel] = useState<{ x: number; y: number; block?: Block } | null>(null);
+  const [mouseCoords, setMouseCoords] = useState<MouseCoords | null>(null);
   const [showStatusButtons, setShowStatusButtons] = useState(false);
   const [placedBlocks] = useState(DUMMY_INITIAL_BLOCKS);
   const [magnifierMode, setMagnifierMode] = useState(false);
@@ -90,18 +110,18 @@ const PixelGrid = () => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [showConfirmMessage, setShowConfirmMessage] = useState(false);
 
+
   const magnifierSize = 200;
   const [fullscreen, setFullscreen] = useState(false);
 
   const [selectedCells, setSelectedCells] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectionData, setSelectionData] = useState(null);
+  // const [selectionData, setSelectionData] = useState(null);
+  const [selectionData, setSelectionData] = useState<SelectionData | null>(null);
+
 
   const [isSelecting, setIsSelecting] = useState(false);
-  const [selectionStart, setSelectionStart] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
+  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
 
   const handleConfirmReservation = () => {
     setIsConfirming(true);
@@ -116,7 +136,7 @@ const PixelGrid = () => {
         setReservedBlocks((prev) => [...prev, selectedBlock]);
       }
       setSelectedBlock(null);
-      setShowConfirmMessage(true);
+          setShowConfirmMessage(true);
     }, 2000); // 2 sec ka fake delay (loading feel)
   };
 
@@ -131,7 +151,8 @@ const PixelGrid = () => {
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isSelecting || !selectionStart) return;
-    const rect = gridContainerRef.current.getBoundingClientRect();
+    const rect = gridContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
     const xEnd = Math.floor((e.clientX - rect.left) / cellSize);
     const yEnd = Math.floor((e.clientY - rect.top) / cellSize);
 
@@ -144,6 +165,7 @@ const PixelGrid = () => {
     const height = y2 - y1 + 1;
     const totalPixels = width * height;
     const price = totalPixels * 1; // $1 per pixel
+ 
 
     setSelectionData({ width, height, totalPixels, price });
     setShowModal(true);
@@ -390,12 +412,8 @@ const PixelGrid = () => {
                   {!showStatusButtons && (
                     <p className="text-gray-400 text-xs sm:text-sm">
                       Hold <span className="text-green-300">Ctrl + Scroll</span>{" "}
-                      to zoom in/out. Current zoom:{" "}
-                      <span className="text-green-300">100%. </span> Hold
-                      <span className="text-green-300">Ctrl+Drag</span> to pan.
-                      Use the{" "}
-                      <span className="text-green-300">magnifier tool </span>{" "}
-                      for precision zooming.
+                      to zoom in/out. Current zoom: <span className="text-green-300">100%. </span> Hold
+                      <span className="text-green-300">Ctrl+Drag</span> to pan. Use the <span className="text-green-300">magnifier tool </span> for precision zooming.
                     </p>
                   )}
                 </div>
@@ -502,38 +520,41 @@ const PixelGrid = () => {
                     ></div>
                   ))}
 
-                {showConfirmMessage && (
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-green-800 p-6 rounded-2xl shadow-2xl text-center w-[340px] text-white border-2 border-green-600">
-                      <h2 className="text-xl font-bold mb-3">
-                        Pixels Reserved!
-                      </h2>
+                  {showConfirmMessage && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-green-800 p-6 rounded-2xl shadow-2xl text-center w-[340px] text-white border-2 border-green-600">
+      <h2 className="text-xl font-bold mb-3">
+        Pixels Reserved!
+      </h2>
 
-                      <p className="text-sm opacity-90 mb-6">
-                        You have successfully reserved these pixels.
-                      </p>
+      <p className="text-sm opacity-90 mb-6">
+        You have successfully reserved these pixels.
+      </p>
 
-                      <div className="flex justify-center gap-4">
-                        <button
-                          onClick={() => {
-                            setShowConfirmMessage(false);
-                            router.push("/login"); // navigate to login page
-                          }}
-                          className="bg-green-600 text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium"
-                        >
-                          Continue
-                        </button>
+      <div className="flex justify-center gap-4">
+        <button
+  onClick={() => {
+    setShowConfirmMessage(false);
+    router.push("/login"); // navigate to login page
+  }}
+  className="bg-green-600 text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium"
+>
+  Continue
+</button>
 
-                        <button
-                          onClick={() => setShowConfirmMessage(false)}
-                          className="bg-red-600  hover:bg-red-700 text-black px-4 py-2 rounded-lg font-semibold transition"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+
+        <button
+          onClick={() => setShowConfirmMessage(false)}
+          className="bg-red-600  hover:bg-red-700 text-black px-4 py-2 rounded-lg font-semibold transition"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
                 {magnifierMode && mouseCoords && (
                   <div
