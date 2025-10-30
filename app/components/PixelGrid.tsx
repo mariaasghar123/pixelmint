@@ -90,7 +90,6 @@ const PixelGrid = () => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [showConfirmMessage, setShowConfirmMessage] = useState(false);
 
-
   const magnifierSize = 200;
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -99,7 +98,10 @@ const PixelGrid = () => {
   const [selectionData, setSelectionData] = useState(null);
 
   const [isSelecting, setIsSelecting] = useState(false);
-  const [selectionStart, setSelectionStart] = useState(null);
+  const [selectionStart, setSelectionStart] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const handleConfirmReservation = () => {
     setIsConfirming(true);
@@ -114,7 +116,7 @@ const PixelGrid = () => {
         setReservedBlocks((prev) => [...prev, selectedBlock]);
       }
       setSelectedBlock(null);
-          setShowConfirmMessage(true);
+      setShowConfirmMessage(true);
     }, 2000); // 2 sec ka fake delay (loading feel)
   };
 
@@ -278,27 +280,6 @@ const PixelGrid = () => {
       </div>
     );
   };
-  // Mouse/magnifier tracking, unchanged except pointer logic
-  // const handleMouseMove = useCallback(
-  //   (e) => {
-  //     if (!gridContainerRef.current) return;
-  //     const rect = gridContainerRef.current.getBoundingClientRect();
-  //     const x = e.clientX - rect.left;
-  //     const y = e.clientY - rect.top;
-  //     setMouseCoords({ x, y });
-  //     const cellX = Math.floor(x / cellSize);
-  //     const cellY = Math.floor(y / cellSize);
-  //     if (
-  //       cellX >= 0 &&
-  //       cellX < gridWidthCells &&
-  //       cellY >= 0 &&
-  //       cellY < gridHeightCells
-  //     )
-  //       setHoverPixel({ x: cellX, y: cellY });
-  //     else setHoverPixel(null);
-  //   },
-  //   [cellSize, gridWidthCells, gridHeightCells]
-  // );
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!gridContainerRef.current) return;
@@ -409,8 +390,12 @@ const PixelGrid = () => {
                   {!showStatusButtons && (
                     <p className="text-gray-400 text-xs sm:text-sm">
                       Hold <span className="text-green-300">Ctrl + Scroll</span>{" "}
-                      to zoom in/out. Current zoom: <span className="text-green-300">100%. </span> Hold
-                      <span className="text-green-300">Ctrl+Drag</span> to pan. Use the <span className="text-green-300">magnifier tool </span> for precision zooming.
+                      to zoom in/out. Current zoom:{" "}
+                      <span className="text-green-300">100%. </span> Hold
+                      <span className="text-green-300">Ctrl+Drag</span> to pan.
+                      Use the{" "}
+                      <span className="text-green-300">magnifier tool </span>{" "}
+                      for precision zooming.
                     </p>
                   )}
                 </div>
@@ -517,41 +502,38 @@ const PixelGrid = () => {
                     ></div>
                   ))}
 
-                  {showConfirmMessage && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div className="bg-green-800 p-6 rounded-2xl shadow-2xl text-center w-[340px] text-white border-2 border-green-600">
-      <h2 className="text-xl font-bold mb-3">
-        Pixels Reserved!
-      </h2>
+                {showConfirmMessage && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-green-800 p-6 rounded-2xl shadow-2xl text-center w-[340px] text-white border-2 border-green-600">
+                      <h2 className="text-xl font-bold mb-3">
+                        Pixels Reserved!
+                      </h2>
 
-      <p className="text-sm opacity-90 mb-6">
-        You have successfully reserved these pixels.
-      </p>
+                      <p className="text-sm opacity-90 mb-6">
+                        You have successfully reserved these pixels.
+                      </p>
 
-      <div className="flex justify-center gap-4">
-        <button
-  onClick={() => {
-    setShowConfirmMessage(false);
-    router.push("/login"); // navigate to login page
-  }}
-  className="bg-green-600 text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium"
->
-  Continue
-</button>
+                      <div className="flex justify-center gap-4">
+                        <button
+                          onClick={() => {
+                            setShowConfirmMessage(false);
+                            router.push("/login"); // navigate to login page
+                          }}
+                          className="bg-green-600 text-white hover:bg-gray-800 px-4 py-2 rounded-lg font-medium"
+                        >
+                          Continue
+                        </button>
 
-
-        <button
-          onClick={() => setShowConfirmMessage(false)}
-          className="bg-red-600  hover:bg-red-700 text-black px-4 py-2 rounded-lg font-semibold transition"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-
+                        <button
+                          onClick={() => setShowConfirmMessage(false)}
+                          className="bg-red-600  hover:bg-red-700 text-black px-4 py-2 rounded-lg font-semibold transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {magnifierMode && mouseCoords && (
                   <div
