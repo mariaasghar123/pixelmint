@@ -1,171 +1,320 @@
 "use client";
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   TransformWrapper,
   TransformComponent,
   useControls,
 } from "react-zoom-pan-pinch";
 
-interface PixelBlock {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  imageUrl?: string;
-  ownerId?: string;
-}
-
-interface GridConfig {
-  gridWidthCells: number;
-  gridHeightCells: number;
-  cellSize: number;
-  defaultBlockWidth: number;
-  defaultBlockHeight: number;
-}
-
-const DEFAULT_CONFIG: GridConfig = {
-  gridWidthCells: 150,
-  gridHeightCells: 100,
+const DEFAULT_CONFIG = {
+  gridWidthCells: 160,
+  gridHeightCells: 80,
   cellSize: 10,
   defaultBlockWidth: 5,
   defaultBlockHeight: 5,
 };
 
-const DUMMY_INITIAL_BLOCKS: PixelBlock[] = [
-  { id: "b1", x: 5, y: 5, width: 15, height: 10, imageUrl: "/car1.jpg", ownerId: "user1" },
+const DUMMY_INITIAL_BLOCKS = [
+  // ... your block data as before
+  {
+    id: "b1",
+    x: 5,
+    y: 5,
+    width: 15,
+    height: 10,
+    imageUrl: "/images/car.webp",
+    ownerId: "user1",
+  },
   { id: "b2", x: 100, y: 70, width: 30, height: 10, ownerId: "placeholder" },
-  { id: "b3", x: 80, y: 30, width: 5, height: 5, imageUrl: "/phone.png", ownerId: "user3" },
+  {
+    id: "b3",
+    x: 80,
+    y: 30,
+    width: 10,
+    height: 10,
+    imageUrl: "/images/car2.jpg",
+    ownerId: "user3",
+  },
   { id: "b4", x: 30, y: 40, width: 10, height: 2, ownerId: "placeholder_long" },
-  { id: "b5", x: 100, y: 40, width: 20, height: 5, ownerId: "placeholder_blue" },
-  { id: "b6", x: 120, y: 80, width: 15, height: 5, imageUrl: "/car2.jpg", ownerId: "user6" },
+  {
+    id: "b5",
+    x: 100,
+    y: 40,
+    width: 20,
+    height: 5,
+    ownerId: "placeholder_blue",
+  },
+  {
+    id: "b6x",
+    x: 40,
+    y: 20,
+    width: 15,
+    height: 5,
+    imageUrl: "/images/car3.jpg",
+    ownerId: "user6",
+  },
+  {
+    id: "b6y",
+    x: 20,
+    y: 70,
+    width: 15,
+    height: 5,
+    imageUrl: "/images/car3.jpg",
+    ownerId: "user6",
+  },
   { id: "b7", x: 50, y: 70, width: 10, height: 15, ownerId: "placeholder_red" },
 ];
 
-const PixelGrid: React.FC = () => {
-  const { gridWidthCells, gridHeightCells, cellSize, defaultBlockWidth, defaultBlockHeight } = DEFAULT_CONFIG;
+const PixelGrid = () => {
+  const {
+    gridWidthCells,
+    gridHeightCells,
+    cellSize,
+    defaultBlockWidth,
+    defaultBlockHeight,
+  } = DEFAULT_CONFIG;
   const totalGridWidthPx = gridWidthCells * cellSize;
   const totalGridHeightPx = gridHeightCells * cellSize;
 
-  const [hoverPixel, setHoverPixel] = useState<{ x: number; y: number } | null>(null);
-  const [selectedBlock, setSelectedBlock] = useState<{ x: number; y: number; width: number; height: number; price: number } | null>(null);
-  const [placedBlocks] = useState<PixelBlock[]>(DUMMY_INITIAL_BLOCKS);
+  const [hoverPixel, setHoverPixel] = useState(null);
+  const [mouseCoords, setMouseCoords] = useState(null);
+  const [showStatusButtons, setShowStatusButtons] = useState(false);
+  const [placedBlocks] = useState(DUMMY_INITIAL_BLOCKS);
   const [magnifierMode, setMagnifierMode] = useState(false);
-  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const [magnifierZoom, setMagnifierZoom] = useState(2);
+  const gridContainerRef = useRef(null);
+  const magnifierSize = 200;
+  const [fullscreen, setFullscreen] = useState(false);
 
-  const currentBlockPrice = defaultBlockWidth * defaultBlockHeight * (25 / (5 * 5));
+  const [selectedCells, setSelectedCells] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectionData, setSelectionData] = useState(null);
 
-  // --- Controls Component ---
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState(null);
+
+  const handleMouseDown = (e) => {
+    if (!gridContainerRef.current) return;
+    const rect = gridContainerRef.current.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / cellSize);
+    const y = Math.floor((e.clientY - rect.top) / cellSize);
+    setSelectionStart({ x, y });
+    setIsSelecting(true);
+  };
+
+  const handleMouseUp = (e) => {
+    if (!isSelecting || !selectionStart) return;
+    const rect = gridContainerRef.current.getBoundingClientRect();
+    const xEnd = Math.floor((e.clientX - rect.left) / cellSize);
+    const yEnd = Math.floor((e.clientY - rect.top) / cellSize);
+
+    const x1 = Math.min(selectionStart.x, xEnd);
+    const y1 = Math.min(selectionStart.y, yEnd);
+    const x2 = Math.max(selectionStart.x, xEnd);
+    const y2 = Math.max(selectionStart.y, yEnd);
+
+    const width = x2 - x1 + 1;
+    const height = y2 - y1 + 1;
+    const totalPixels = width * height;
+    const price = totalPixels * 1; // $1 per pixel
+
+    setSelectionData({ width, height, totalPixels, price });
+    setShowModal(true);
+    setIsSelecting(false);
+    setSelectionStart(null);
+  };
+
+  // Fullscreen toggle using browser API
+  const handleGridFullscreen = useCallback(() => {
+    const elem = gridContainerRef.current;
+    if (!elem) return;
+
+    if (!document.fullscreenElement) {
+      elem.requestFullscreen().then(() => setFullscreen(true));
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen().then(() => setFullscreen(false));
+    }
+  }, []);
+
+  // Only + and - change zoom, dropdown removed
+  // Magnifier only appears after + is clicked
+
+  // StatusButtonGroup unchanged (copy from previous)
+  const StatusButtonGroup = () => (
+    <div className="flex gap-3 items-center p-2 mt-4 rounded-lg">
+      <button
+        className="bg-red-600 text-black font-custom px-4 py-2 mb-2 rounded"
+        onClick={() => setShowStatusButtons(false)}
+        style={{ backgroundColor: "rgba(209, 32, 32, 1)" }}
+      >
+        Revert
+      </button>
+      <div
+        className="flex gap-2 items-center bg-[#024D45] rounded mb-2 py-2 px-3"
+        style={{ outlineColor: "#98f08c" }}
+      >
+        <span className="w-4 h-4 rounded bg-[#022820] inline-block"></span>
+        <span className="text-white text-sm">Free</span>
+        <span className="w-4 h-4 rounded bg-red-600 inline-block"></span>
+        <span className="text-white text-sm">Taken</span>
+        <span className="w-4 h-4 rounded bg-blue-600 inline-block"></span>
+        <span className="text-white text-sm">Reserved</span>
+        <span className="w-4 h-4 rounded bg-green-500 inline-block"></span>
+        <span className="text-white text-sm">Selected</span>
+      </div>
+    </div>
+  );
+
   const Controls = () => {
+    // Do not change SVGs!
     const { zoomIn, zoomOut, resetTransform } = useControls();
-    const [isFullScreen, setIsFullScreen] = useState(false);
 
-    const toggleFullScreen = () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-        setIsFullScreen(true);
-      } else if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullScreen(false);
+    // + shows/increases magnifier zoom, - decreases/closes
+    const handleZoomInClick = () => {
+      setMagnifierMode(true);
+      setMagnifierZoom((prev) => (prev < 10 ? prev + 1 : 10));
+    };
+    const handleZoomOutClick = () => {
+      if (magnifierZoom > 1) {
+        setMagnifierZoom((prev) => prev - 1);
+      } else {
+        setMagnifierMode(false); // disables if reaching 1x and pressing -
       }
     };
-
-    // Initial zoom centering
-    useEffect(() => {
-      if (gridContainerRef.current) {
-        const initialScale = 0.3; // smaller for mobile
-        const initialX = -((totalGridWidthPx * initialScale - gridContainerRef.current.offsetWidth) / 2);
-        const initialY = -((totalGridHeightPx * initialScale - gridContainerRef.current.offsetHeight) / 2);
-        setTimeout(() => {
-          resetTransform();
-          // If you need specific positioning, consider using setTransform instead
-        }, 100);
-      }
-    }, [resetTransform, totalGridWidthPx, totalGridHeightPx]);
+    // Only maximize grid (
+    const handleGridFullscreen = () => setFullscreen((f) => !f);
 
     return (
       <div className="flex gap-2 text-white flex-wrap justify-center overflow-hidden">
         <button
-          onClick={() => zoomIn()}
+          onClick={handleZoomInClick}
           className="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-md"
           title="Zoom In"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16zm0-10v4m0 0h4m-4 0H6" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16zm0-10v4m0 0h4m-4 0H6"
+            />
           </svg>
         </button>
-
         <button
-          onClick={() => zoomOut()}
+          onClick={handleZoomOutClick}
           className="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-md"
           title="Zoom Out"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16zm-4-8h8" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16zm-4-8h8"
+            />
           </svg>
         </button>
-
+        {/* Magnifier: only show current zoom value, no dropdown, no green row */}
+        {magnifierMode && (
+          <span className="ml-2 text-green-400">Zoom: {magnifierZoom}x</span>
+        )}
         <button
-          onClick={() => toggleFullScreen()}
+          onClick={handleGridFullscreen}
           className="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 rounded-md"
-          title="Fullscreen"
+          title="Fullscreen grid"
         >
-          {isFullScreen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 8h4V4H8v4zm0 8h4v4H8v-4zm8-8h4V4h-4v4zm0 8h4v4h-4v-4z" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4h4M4 16v4h4m8-16h4v4m0 8v4h-4" />
-            </svg>
-          )}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 8V4h4M4 16v4h4m8-16h4v4m0 8v4h-4"
+            />
+          </svg>
         </button>
       </div>
     );
   };
+  // Mouse/magnifier tracking, unchanged except pointer logic
+  // const handleMouseMove = useCallback(
+  //   (e) => {
+  //     if (!gridContainerRef.current) return;
+  //     const rect = gridContainerRef.current.getBoundingClientRect();
+  //     const x = e.clientX - rect.left;
+  //     const y = e.clientY - rect.top;
+  //     setMouseCoords({ x, y });
+  //     const cellX = Math.floor(x / cellSize);
+  //     const cellY = Math.floor(y / cellSize);
+  //     if (
+  //       cellX >= 0 &&
+  //       cellX < gridWidthCells &&
+  //       cellY >= 0 &&
+  //       cellY < gridHeightCells
+  //     )
+  //       setHoverPixel({ x: cellX, y: cellY });
+  //     else setHoverPixel(null);
+  //   },
+  //   [cellSize, gridWidthCells, gridHeightCells]
+  // );
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!gridContainerRef.current) return;
+      const rect = gridContainerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-  // --- Mouse Interaction Handlers ---
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!gridContainerRef.current) return;
-    const x = e.nativeEvent.offsetX;
-    const y = e.nativeEvent.offsetY;
-    const cellX = Math.floor(x / cellSize);
-    const cellY = Math.floor(y / cellSize);
-    if (cellX >= 0 && cellX < gridWidthCells && cellY >= 0 && cellY < gridHeightCells)
-      setHoverPixel({ x: cellX, y: cellY });
-    else setHoverPixel(null);
-  }, [cellSize, gridWidthCells, gridHeightCells]);
+      setMouseCoords({ x, y });
 
-  const handleClick = useCallback(() => {
-    if (!hoverPixel) return;
-    const blockX = Math.floor(hoverPixel.x / defaultBlockWidth) * defaultBlockWidth;
-    const blockY = Math.floor(hoverPixel.y / defaultBlockHeight) * defaultBlockHeight;
-    const isOccupied = placedBlocks.some(
-      (block) =>
-        block.x < blockX + defaultBlockWidth &&
-        block.x + block.width > blockX &&
-        block.y < blockY + defaultBlockHeight &&
-        block.y + block.height > blockY
-    );
-    if (!isOccupied) {
-      setSelectedBlock({ x: blockX, y: blockY, width: defaultBlockWidth, height: defaultBlockHeight, price: currentBlockPrice });
-    } else {
-      setSelectedBlock(null);
-      alert("This area is already taken! Please choose an empty block.");
-    }
-  }, [hoverPixel, placedBlocks, defaultBlockWidth, defaultBlockHeight, currentBlockPrice]);
+      const cellX = Math.floor(x / cellSize);
+      const cellY = Math.floor(y / cellSize);
 
-  // --- Grid Lines ---
+      const hoveredBlock = placedBlocks.find(
+        (b) =>
+          x >= b.x * cellSize &&
+          x <= (b.x + b.width) * cellSize &&
+          y >= b.y * cellSize &&
+          y <= (b.y + b.height) * cellSize
+      );
+
+      if (hoveredBlock) {
+        setHoverPixel({ x: cellX, y: cellY, block: hoveredBlock });
+      } else {
+        setHoverPixel(null);
+      }
+    },
+    [cellSize, gridWidthCells, gridHeightCells, placedBlocks]
+  );
+  // Grid lines etc—all same
   const renderGridLines = () => {
     const lines = [];
     for (let i = 0; i <= gridWidthCells; i++) {
       const isBlockBoundary = i % defaultBlockWidth === 0;
       lines.push(
-        <div key={`v-${i}`} className="absolute bg-gray-700"
+        <div
+          key={`v-${i}`}
+          className="absolute bg-gray-700"
           style={{
             left: i * cellSize,
             top: 0,
-            height: totalGridHeightPx,
+            height: gridHeightCells * cellSize,
             width: 1,
             opacity: isBlockBoundary ? 0.6 : 0.2,
           }}
@@ -175,11 +324,13 @@ const PixelGrid: React.FC = () => {
     for (let i = 0; i <= gridHeightCells; i++) {
       const isBlockBoundary = i % defaultBlockHeight === 0;
       lines.push(
-        <div key={`h-${i}`} className="absolute bg-gray-700"
+        <div
+          key={`h-${i}`}
+          className="absolute bg-gray-700"
           style={{
             top: i * cellSize,
             left: 0,
-            width: totalGridWidthPx,
+            width: gridWidthCells * cellSize,
             height: 1,
             opacity: isBlockBoundary ? 0.6 : 0.2,
           }}
@@ -188,56 +339,85 @@ const PixelGrid: React.FC = () => {
     }
     return lines;
   };
-
+  // Main grid fullscreen logic
   return (
     <div className="flex flex-col items-center bg-[#002320] min-h-[100vh] sm:min-h-screen px-2 sm:px-4">
-      <div className="w-full flex justify-center items-center h-[80vh] sm:h-screen relative">
+      <div
+        className={`relative transition-all duration-300 ${
+          fullscreen
+            ? "fixed inset-0 z-[9999] bg-black flex justify-center items-center"
+            : "w-full h-[80vh] sm:h-screen flex justify-center items-center"
+        }`}
+        style={
+          fullscreen ? { width: "100vw", height: "100vh", padding: 20 } : {}
+        }
+      >
         <TransformWrapper
-          initialScale={0.3}
-          minScale={0.05}
-          maxScale={5}
-          centerOnInit={true}
-          wheel={{ step: 0.1 }}
+          initialScale={1}
+          minScale={1}
+          maxScale={1}
+          wheel={{ disabled: true }}
           panning={{ disabled: true }}
         >
           <>
             {/* --- Header --- */}
-            <div className="absolute top-0 left-0 right-0 p-3 sm:p-4 bg-[#002320] text-white flex flex-col md:flex-row md:justify-evenly md:mx-40 lg:flex-row lg:justify-evenly  xl:mx-10 xl:justify-between items-center gap-3 sm:gap-0 z-50 shadow-lg border-b border-[#0e6c6c]">
-              <div className="flex flex-col gap-2 text-white text-sm sm:text-base text-center sm:text-left">
-                <p className="w-full sm:w-[300px] p-2 border border-transparent rounded bg-[#024D45]">
-                  Pixel: ({hoverPixel ? `${hoverPixel.x}, ${hoverPixel.y}` : "-,-"}) &nbsp;&nbsp;
-                  Block: {defaultBlockWidth}x{defaultBlockHeight} Pixels (${currentBlockPrice})
-                </p>
-                <p className="text-gray-400 text-xs sm:text-sm">
-                  Hold <span className="text-green-300">Ctrl + Scroll</span> to zoom | 
-                  <span className="text-green-300"> Ctrl + Drag</span> to pan
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap justify-center">
-                <button
-                  onClick={() => alert("Buy Pixels Clicked!")}
-                  className="font-custom px-4 sm:px-6 py-2 bg-[#98F08C] hover:bg-green-700 transition rounded-lg text-black text-sm sm:text-lg shadow-md"
-                >
-                  Buy Pixels
-                </button>
-                <Controls />
+            <div className="absolute top-0 left-0 right-0 p-3 sm:p-4 bg-[#002320] text-white flex flex-col gap-2 z-50 shadow-lg border-b border-[#0e6c6c]">
+              <div className="flex flex-row justify-between items-start gap-8">
+                {/* LEFT info */}
+                <div className="flex flex-col justify-center min-w-[330px] max-w-[40vw]">
+                  <p className="p-2 rounded bg-[#024D45] mb-1 w-max">
+                    Pixel: (
+                    {hoverPixel ? `${hoverPixel.x}, ${hoverPixel.y}` : "-,-"})
+                    &nbsp; Block {defaultBlockWidth}x {defaultBlockHeight}{" "}
+                    &nbsp; $25 pixels
+                  </p>
+                  {showStatusButtons && (
+                    <p className="text-gray-400 text-xs sm:text-sm">
+                      The selected pixels will be{" "}
+                      <span className="text-green-300">
+                        reserved for 10 minutes.
+                      </span>
+                      If you do not complete your transaction within this time,
+                      the pixels will be available for purchase by others.
+                    </p>
+                  )}
+                  {!showStatusButtons && (
+                    <p className="text-gray-400 text-xs sm:text-sm">
+                      Hold <span className="text-green-300">Ctrl + Scroll</span>{" "}
+                      to zoom in/out. Use{" "}
+                      <span className="text-green-300">+</span> to magnify.
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-row items-center gap-3 flex-shrink-0">
+                  {!showStatusButtons && (
+                    <button
+                      onClick={() => setShowStatusButtons(true)}
+                      className="font-custom px-4 py-2 bg-[#98F08C] hover:bg-green-700 transition rounded-lg text-black text-sm sm:text-lg shadow-md"
+                    >
+                      Buy Pixels
+                    </button>
+                  )}
+                  {showStatusButtons && <StatusButtonGroup />}
+                  <Controls />
+                </div>
               </div>
             </div>
-
             {/* --- Grid --- */}
             <TransformComponent
               wrapperStyle={{
-                width: "100%",
-                height: "100%",
+                width: totalGridWidthPx,
+                height: totalGridHeightPx,
                 marginTop: "100px",
                 cursor: magnifierMode ? "crosshair" : "grab",
                 touchAction: "none",
+                overflow: "hidden",
               }}
               contentStyle={{
                 width: totalGridWidthPx,
                 height: totalGridHeightPx,
-                backgroundColor: "#003A36",
+                backgroundColor: "#002320",
+                backgroundSize: "10px 10px, 50px 50px",
                 position: "relative",
               }}
             >
@@ -245,11 +425,14 @@ const PixelGrid: React.FC = () => {
                 ref={gridContainerRef}
                 className="relative w-full h-full"
                 onMouseMove={handleMouseMove}
-                onClick={handleClick}
-                onMouseLeave={() => setHoverPixel(null)}
+                onMouseDown={handleMouseDown} // ✅ Added this
+                onMouseUp={handleMouseUp} // ✅ Added this
+                onMouseLeave={() => {
+                  setHoverPixel(null);
+                  setMouseCoords(null);
+                }}
               >
                 {renderGridLines()}
-
                 {hoverPixel && (
                   <div
                     className="absolute bg-white opacity-10"
@@ -261,24 +444,142 @@ const PixelGrid: React.FC = () => {
                     }}
                   />
                 )}
-
-                {selectedBlock && (
+                {isSelecting && selectionStart && mouseCoords && (
                   <div
-                    className="absolute border-2 border-red-500"
+                    className="absolute border-2 border-green-400 bg-green-400/10"
                     style={{
-                      left: selectedBlock.x * cellSize,
-                      top: selectedBlock.y * cellSize,
-                      width: selectedBlock.width * cellSize,
-                      height: selectedBlock.height * cellSize,
+                      left: Math.min(
+                        selectionStart.x * cellSize,
+                        Math.floor(mouseCoords.x / cellSize) * cellSize
+                      ),
+                      top: Math.min(
+                        selectionStart.y * cellSize,
+                        Math.floor(mouseCoords.y / cellSize) * cellSize
+                      ),
+                      width:
+                        (Math.abs(
+                          Math.floor(mouseCoords.x / cellSize) -
+                            selectionStart.x
+                        ) +
+                          1) *
+                        cellSize,
+                      height:
+                        (Math.abs(
+                          Math.floor(mouseCoords.y / cellSize) -
+                            selectionStart.y
+                        ) +
+                          1) *
+                        cellSize,
+                      pointerEvents: "none",
+                      zIndex: 10,
                     }}
-                  />
+                  ></div>
+                )}
+
+                {magnifierMode && mouseCoords && (
+                  <div
+                    className="pointer-events-none absolute"
+                    style={{
+                      left: mouseCoords.x - magnifierSize / 2,
+                      top: mouseCoords.y - magnifierSize / 2,
+                      width: magnifierSize,
+                      height: magnifierSize,
+                      borderRadius: "80%",
+                      border: "3px solid white",
+                      boxShadow: "0 0 8px 2px #111",
+                      overflow: "hidden",
+                      background: "#002320",
+                      zIndex: 20,
+                    }}
+                  >
+                    {/* Inner zoomed grid view */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        left:
+                          -(mouseCoords.x * magnifierZoom) + magnifierSize / 2,
+                        top:
+                          -(mouseCoords.y * magnifierZoom) + magnifierSize / 2,
+                        width: totalGridWidthPx * magnifierZoom,
+                        height: totalGridHeightPx * magnifierZoom,
+                        transformOrigin: "top left",
+                      }}
+                    >
+                      {/* Draw grid lines */}
+                      {renderGridLines()}
+
+                      {/* Draw all blocks */}
+                      {placedBlocks.map((block) => (
+                        <div
+                          key={`mag-${block.id}`}
+                          className={`absolute border border-gray-600 overflow-hidden ${
+                            block.ownerId?.includes("placeholder")
+                              ? "bg-red-700 opacity-60"
+                              : "bg-blue-600 opacity-50"
+                          }`}
+                          style={{
+                            left: block.x * cellSize * magnifierZoom,
+                            top: block.y * cellSize * magnifierZoom,
+                            width: block.width * cellSize * magnifierZoom,
+                            height: block.height * cellSize * magnifierZoom,
+                          }}
+                        >
+                          {block.imageUrl && (
+                            <img
+                              src={block.imageUrl}
+                              alt={`Block ${block.id}`}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Crosshair */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: "50%",
+                        top: "50%",
+                        width: "22px",
+                        height: "22px",
+                        transform: "translate(-50%,-50%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "2px",
+                          height: "22px",
+                          background: "red",
+                          position: "absolute",
+                        }}
+                      />
+                      <div
+                        style={{
+                          height: "2px",
+                          width: "22px",
+                          background: "red",
+                          position: "absolute",
+                        }}
+                      />
+                    </div>
+                  </div>
                 )}
 
                 {placedBlocks.map((block) => (
                   <div
                     key={block.id}
                     className={`absolute border border-gray-600 overflow-hidden ${
-                      block.ownerId?.includes("placeholder") ? "bg-red-700 opacity-60" : "bg-blue-600 opacity-50"
+                      block.ownerId?.includes("placeholder")
+                        ? "bg-red-700 opacity-60"
+                        : "bg-blue-600 opacity-50"
                     }`}
                     style={{
                       left: block.x * cellSize,
@@ -288,7 +589,11 @@ const PixelGrid: React.FC = () => {
                     }}
                   >
                     {block.imageUrl ? (
-                      <img src={block.imageUrl} alt={`Block ${block.id}`} className="w-full h-full object-cover" />
+                      <img
+                        src={block.imageUrl}
+                        alt={`Block ${block.id}`}
+                        className="w-full h-full object-cover"
+                      />
                     ) : null}
                   </div>
                 ))}
@@ -297,6 +602,62 @@ const PixelGrid: React.FC = () => {
           </>
         </TransformWrapper>
       </div>
+      {showModal && selectionData && (
+        <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-[99999]">
+          <div className="bg-[#002c26] text-center rounded-2xl p-8 max-w-lg w-full shadow-2xl border border-[#0e6c6c]">
+            <h2 className="text-4xl font-custom text-green-300 mb-4">
+              Pixels Reserved!
+            </h2>
+            <p className="text-green-200 mb-6">
+              Please confirm your reservation of the selected pixels.
+            </p>
+
+            <div className="bg-[#013b34] rounded-lg p-4 mb-6 border border-[#0e6c6c] text-left">
+              <h3 className="text-green-400 font-semibold mb-2 text-center">
+                Selection Details
+              </h3>
+              <p className="text-green-300 mb-1 flex justify-between border-b border-green-700 pb-2">
+                Dimensions:{" "}
+                <span className="text-green-200">
+                  {selectionData.width}px × {selectionData.height}px
+                </span>
+                <span className="float-right flex justify-between text-green-300">
+                  Total Area: 
+                  <span className="text-green-200">{selectionData.totalPixels}px</span>
+                   
+                </span>
+              </p>
+              <p className="text-green-300 mt-2 flex justify-between text-lg text-center">
+                <strong>Price:</strong>{" "}
+                <span className="text-green-500 text-lg font-bold">
+                  ${selectionData.price.toLocaleString()}
+                </span>
+              </p>
+              <p className="text-green-500 text-center text-sm mt-1">
+                Rate: $1 per pixel
+              </p>
+            </div>
+
+            <div className="flex justify-around font-custom">
+              <button
+                className="bg-green-500 hover:bg-green-600 text-black px-6 py-2 rounded-lg"
+                onClick={() => {
+                  alert("Reservation Confirmed ✅");
+                  setShowModal(false);
+                }}
+              >
+                Confirm Reservation
+              </button>
+              <button
+                className="bg-red-600 hover:bg-red-700 text-black px-6 py-2 rounded-lg"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
