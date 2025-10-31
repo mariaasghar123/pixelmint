@@ -5,7 +5,13 @@ import { Shield, Zap } from "lucide-react";
 
 const LoginPage = () => {
   return (
-    <div className="min-h-screen bg-[#002b23] flex flex-col items-center justify-center text-white px-4 sm:px-6 md:px-0">
+    <div
+  className="min-h-screen flex flex-col items-center justify-center text-white px-4 sm:px-6 md:px-0
+  bg-[#002b23]
+  bg-[url('/images/bg2.png')] 
+  bg-cover
+   bg-center bg-no-repeat"
+>
       {/* Logo */}
       <div className="mb-6 text-center">
         <img
