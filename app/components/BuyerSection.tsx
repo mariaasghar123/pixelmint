@@ -77,7 +77,6 @@ const BuyerCard: React.FC<{ data: BuyerData }> = ({ data }) => {
             className="w-full h-full object-contain"
           />
         </div>
-
         <div className="flex flex-col">
           {data.tag && (
             <p className="text-xs font-medium text-[#98F08C] mb-1">{data.tag}</p>
@@ -119,7 +118,7 @@ const BuyerSection: React.FC<BuyerSectionProps> = ({ title, icon, data }) => {
   }, []);
 
   return (
-    <section className="w-full max-w-8xl mx-auto mb-12 mt-6 px-4 sm:px-6 md:px-10 lg:px-16 xl:px-2">
+    <section className="w-full max-w-8xl mx-auto mb-12 mt-6 px-0 sm:px-6 md:px-10 lg:px-16 xl:px-2">
       {/* Header */}
       <div className="flex items-center border border-b-0 p-4 bg-[#002320] border-b-2 border-[#0e6c6c] rounded-t-lg shadow-inner">
         <span className="mr-3 text-2xl text-[#98F08C]">{icon}</span>
@@ -133,8 +132,8 @@ const BuyerSection: React.FC<BuyerSectionProps> = ({ title, icon, data }) => {
         <div
           ref={scrollRef}
           className="
-            flex overflow-x-auto md:grid 
-            md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 
+            flex overflow-x-auto overflow-x:hidden md:grid 
+            md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 
             gap-4 md:gap-6
             snap-x snap-mandatory
             scrollbar-hide
@@ -151,7 +150,7 @@ const BuyerSection: React.FC<BuyerSectionProps> = ({ title, icon, data }) => {
           {data.map((_, i) => (
             <span
               key={i}
-              className={`h-2 w-2 rounded-full transition-all duration-300 ${
+              className={`h-2 w-3 rounded-full transition-all duration-300 ${
                 i === currentIndex ? "bg-[#98F08C] w-4" : "bg-gray-500"
               }`}
             ></span>
