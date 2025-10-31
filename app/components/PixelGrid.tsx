@@ -100,8 +100,6 @@ const PixelGrid = () => {
   const totalGridHeightPx = gridHeightCells * cellSize;
   const [reservedBlocks, setReservedBlocks] = useState<Block[]>([]);
   const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
-
-
   const [hoverPixel, setHoverPixel] = useState<{
     x: number;
     y: number;
@@ -122,14 +120,17 @@ const PixelGrid = () => {
 
 useEffect(() => {
   const updateScale = () => {
-    if (window.innerWidth < 500) setInitialScale(0.3);  // Mobile
-    else if (window.innerWidth < 900) setInitialScale(0.5); // Tablet
-    else setInitialScale(1);  // Desktop
+    const width = window.innerWidth;
+    if (width < 400) setInitialScale(0.25);
+    else if (width < 600) setInitialScale(0.35);
+    else if (width < 900) setInitialScale(0.5);
+    else setInitialScale(1);
   };
   updateScale();
   window.addEventListener("resize", updateScale);
   return () => window.removeEventListener("resize", updateScale);
 }, []);
+
 
 
   const [selectedCells, setSelectedCells] = useState([]);
@@ -340,25 +341,7 @@ useEffect(() => {
             />
           </svg>
         </button>
-        {/* Buttons to control the actual pan/zoom library */}
-        {/* <button
-          onClick={() => zoomIn()}
-          className="w-8 h-8 flex items-center justify-center bg-blue-700 hover:bg-blue-600 rounded-md"
-          title="Canvas Zoom In (Ctrl+Scroll)"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-            <path d="M5 9V7H3V9H5ZM7 9V7H9V9H7ZM11 9V7H13V9H11ZM15 9V7H17V9H15ZM5 13V11H3V13H5ZM7 13V11H9V13H7ZM11 13V11H13V13H11ZM15 13V11H17V13H15Z" />
-          </svg>
-        </button> */}
-        {/* <button
-          onClick={() => zoomOut()}
-          className="w-8 h-8 flex items-center justify-center bg-blue-700 hover:bg-blue-600 rounded-md"
-          title="Canvas Zoom Out (Ctrl+Scroll)"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-            <path d="M5 9V7H3V9H5ZM7 9V7H9V9H7ZM11 9V7H13V9H11ZM15 9V7H17V9H15ZM5 13V11H3V13H5ZM7 13V11H9V13H7ZM11 13V11H13V13H11ZM15 13V11H17V13H15Z" />
-          </svg>
-        </button> */}
+        
       </div>
     );
   };
@@ -471,13 +454,13 @@ useEffect(() => {
         }`}
         // The style is mostly handled by classes now
       >
-        <TransformWrapper
+        <TransformWrapper  
+        key={initialScale}
   initialScale={initialScale}
   minScale={initialScale}
   maxScale={1}
-  wheel={{ disabled: true }}
-  panning={{ disabled: true }}
-  
+   wheel={{ disabled: true }}
+   panning={{ disabled: true }}
 >
           <>
             {/* --- Header - Responsive Layout --- */}
@@ -530,10 +513,7 @@ useEffect(() => {
                 </div>
               </div>
             </div>
-
             {/* --- Grid - Responsive Wrapper --- */}
-            
-            
             <TransformComponent
               wrapperStyle={{
                 // **RESPONSIVENESS FIX:** The wrapper now fills the parent container's available space.
@@ -541,6 +521,8 @@ useEffect(() => {
                 // height: totalGridHeightPx,
                 width: "100%",
                 height: "100%",
+                
+                
                 // Removed fixed width/height and marginTop
                 cursor: magnifierMode ? "crosshair" : "grab",
                 touchAction: "none",
@@ -553,6 +535,8 @@ useEffect(() => {
                 backgroundColor: "#002320",
                 backgroundSize: "10px 10px, 50px 50px",
                 position: "relative",
+                 transform: "scale(0.5)", // 👈 0.5 = half size grid
+  transformOrigin: "top left", // keep alignment correct
               }}
             >
               <div
@@ -562,7 +546,6 @@ useEffect(() => {
   w-[320px] sm:w-[600px] md:w-[900px] lg:w-[1200px] xl:w-[1600px]
   h-auto
 `}
-
                 onMouseMove={handleMouseMove}
                 onMouseDown={handleMouseDown}
                 onMouseUp={handleMouseUp}
