@@ -138,7 +138,7 @@ const Navbar = () => {
           </Link>
 
           <Link
-            href="#"
+            href="/login"
             className="bg-[#98F08C] font-custom text-black px-4 py-3 rounded-sm hover:bg-green-300 w-full text-center"
           >
             Connect Wallet
