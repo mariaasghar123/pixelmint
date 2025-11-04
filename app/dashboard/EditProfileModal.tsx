@@ -22,7 +22,7 @@ export default function EditProfileModal({ user, close }: EditProfileModalProps)
 
   const token = localStorage.getItem("jwt"); // dashboard ke token ke jaisa
 
-  const res = await fetch("http://localhost:3000/user/update", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/update`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",

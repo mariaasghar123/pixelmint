@@ -11,8 +11,10 @@ const LoginPage = () => {
   const [showForm, setShowForm] = useState(false); // ✅ Show/Hide Login Form
   const router = useRouter();
 
-const handleLogin = async () => {
-  const res = await fetch("http://localhost:3000/auth/login", {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  const handleLogin = async () => {
+  const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -30,9 +32,6 @@ const handleLogin = async () => {
     setMessage(data.error || "Login failed ❌");
   }
 };
-
-
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-white px-4 sm:px-6 md:px-0 bg-[#002b23]">
       {/* Logo */}

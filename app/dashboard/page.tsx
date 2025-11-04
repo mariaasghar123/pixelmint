@@ -28,7 +28,7 @@ export default function Dashboard() {
         return router.push("/login");
       }
 
-      const res = await fetch("http://localhost:3000/user/me", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
