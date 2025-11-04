@@ -4,123 +4,177 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import EditProfileModal from "./EditProfileModal";
 
-type User = {
-  id: string;
+interface User {
   full_name: string;
-  Email: string;
+  email: string;
+  username: string;
   phone?: string;
   pixelsBought?: number;
-};
+}
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
-      setLoading(true);
-
-      const token = localStorage.getItem("jwt"); // ya cookie
-      if (!token) {
-        setLoading(false);
-        return router.push("/login");
-      }
-
+      const token = localStorage.getItem("jwt");
+      if (!token) return router.push("/login");
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!res.ok) {
-        setLoading(false);
-        return router.push("/login");
-      }
-
+      if (!res.ok) return router.push("/login");
       const data = await res.json();
       setUser(data);
       setLoading(false);
     };
-
     fetchUser();
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("jwt"); // token clear
+    localStorage.removeItem("jwt");
     router.push("/login");
   };
 
-  if (loading) return <p className="text-center text-white mt-10">Loading user...</p>;
-  if (!user) return <p className="text-center text-white mt-10">No user data found.</p>;
+  if (loading)
+    return <p className="text-center text-white mt-10">Loading...</p>;
 
   return (
-    
-  <div className="min-h-screen bg-[#002b23] flex flex-col items-center p-2">
-    <div className="bg-white/10 backdrop-blur-2xl mt-20 border border-white/20 shadow-2xl rounded-3xl p-6 sm:p-10 w-full max-w-3xl text-white transition-all duration-500 hover:scale-[1.01]">
-      
-      {/* Logo */}
-      <div className="mb-6">
-        <img src="/images/MyPixelMint1.svg" alt="Logo" className="w-20 sm:w-28 mx-auto" />
+    <div className="min-h-screen bg-[#013220] flex flex-col md:flex-row">
+      {/* Sidebar */}
+      <div className="relative">
+        {/* Hamburger button for mobile */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="md:hidden absolute top-4 left-4 text-white z-50 bg-black/40 p-2 rounded-lg backdrop-blur-md"
+        >
+          ☰
+        </button>
+
+        <aside
+          className={`fixed md:static top-0 left-0 h-full w-64 bg-[#013220]/90 backdrop-blur-md border-r border-gray-700 
+          p-6 flex flex-col text-white shadow-xl transform transition-transform duration-300 z-40
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+        >
+          <img
+            src="/images/MyPixelMint1.svg"
+            className="w-20 mx-auto hover:scale-110 transition-transform duration-300"
+          />
+
+          <div className="bg-white/10 p-4 rounded-xl text-center mt-6 shadow-lg hover:shadow-xl transition-all">
+            <img
+              src="/images/card.png"
+              className="w-16 h-16 rounded-full border-2 border-[#00ff88] mx-auto shadow-md"
+            />
+            <h2 className="text-lg font-bold mt-2">{user?.full_name}</h2>
+          </div>
+
+          <nav className="mt-6 flex flex-col gap-3">
+            {[
+              { label: "👤 Profile", click: () => setShowProfile(true) },
+              { label: "🎨 Your Pixels", click: () => setShowProfile(false) },
+              { label: "📊 My Ads", click: () => {} },
+              { label: "❓ Query", click: () => {} },
+            ].map((item, i) => (
+              <button
+                key={i}
+                onClick={item.click}
+                className="hover:text-[#00ff88] px-2 py-2 rounded-lg text-left transition-all hover:bg-white/10"
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
+          <button
+            onClick={handleLogout}
+            className="mt-auto bg-red-900 text-white hover:text-red-500 hover:bg-red-500/10 px-3 py-2 rounded-lg transition"
+          >
+            🚪 Logout
+          </button>
+        </aside>
       </div>
 
-      {/* Profile Section */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-left">
-        <img
-          src="/images/card.png"
-          alt="Profile Image"
-          className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-2 border-gray-500 shadow-md hover:scale-105 transition-transform"
+      {/* Main Content */}
+      <main className="flex-1 p-4 md:p-8 text-white">
+        {showProfile ? (
+          <div className="w-full max-w-md mx-auto mt-20 bg-gradient-to-b from-gray-800 to-gray-900 p-6 rounded-2xl border border-gray-700 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+            <div className="flex items-center gap-4 border-b border-gray-700 pb-4 mb-4">
+              <img
+                src="/images/card.png"
+                className="w-16 h-16 rounded-full border-2 border-[#00ff88] shadow-md"
+                alt="Profile"
+              />
+              <h2 className="text-2xl font-bold text-white">Profile Details</h2>
+            </div>
+            <div className="space-y-3 text-gray-200">
+              <p className="flex justify-between">
+                <span className="font-semibold text-gray-400">Name:</span>
+                <span>{user?.full_name}</span>
+              </p>
+              <p className="flex justify-between">
+                <span className="font-semibold text-gray-400">Email:</span>
+                <span>{user?.email}</span>
+              </p>
+              <p className="flex justify-between">
+                <span className="font-semibold text-gray-400">Username:</span>
+                <span>{user?.username}</span>
+              </p>
+              <p className="flex justify-between">
+                <span className="font-semibold text-gray-400">Phone:</span>
+                <span>{user?.phone || "Not Provided"}</span>
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsEditing(true)}
+              className="mt-6 w-full py-2 bg-[#00ff88] hover:bg-[#00e676] text-black font-semibold rounded-lg transform hover:scale-[1.02] transition-all duration-200"
+            >
+              ✏️ Edit Profile
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Pixel Page */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
+              <div>
+                <h1 className="text-3xl font-bold">Buy Pixels</h1>
+                <p className="text-gray-300">Purchase pixels to display your ad</p>
+              </div>
+              <button className="bg-[#00ff88] text-black px-6 py-2 rounded-lg font-bold mt-2 md:mt-0">
+                Buy Pixels
+              </button>
+            </div>
+
+            <div className="mt-8 bg-white/10 p-6 rounded-xl border border-gray-700">
+              <h2 className="text-xl font-semibold">🎨 Your Pixels</h2>
+              <p className="text-gray-300 mt-2">
+                Total Pixels Bought:{" "}
+                <span className="text-[#00ff88] font-bold">{user?.pixelsBought || 0}</span>
+              </p>
+            </div>
+
+            <div className="mt-6 h-64 md:h-[400px] bg-[#012d23] rounded-xl border border-gray-700 flex items-center justify-center text-gray-500">
+              Pixel Grid / Preview Area
+            </div>
+          </>
+        )}
+      </main>
+
+      {/* Edit Modal */}
+      {isEditing && user && (
+        <EditProfileModal
+          user={user}
+          close={(updatedUser) => {
+            setIsEditing(false);
+            if (updatedUser) setUser({ ...user, ...updatedUser });
+          }}
         />
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide">{user.full_name}</h1>
-          <p className="text-gray-300 break-all">{user.Email}</p>
-          <p className="text-gray-400 text-sm mt-1">📞 {user.phone || "No phone added"}</p>
-        </div>
-      </div>
-
-      {/* Pixel Stats */}
-      <div className="mt-6 p-4 sm:p-5 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl text-center sm:text-left">
-        <h2 className="text-lg font-semibold text-gray-200">🎨 Total Pixels Bought</h2>
-        <p className="text-3xl font-bold text-blue-400 mt-2">
-          {user.pixelsBought || 0} Pixels
-        </p>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 mt-8">
-        <button
-          onClick={() => setIsEditing(true)}
-          className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg shadow-lg transition-all duration-300 w-full sm:w-auto"
-        >
-          ✏️ Edit Profile
-        </button>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg shadow-lg transition-all duration-300 w-full sm:w-auto"
-        >
-          🚪 Logout
-        </button>
-      </div>
+      )}
     </div>
-
-    {/* Edit Profile Modal */}
-    {isEditing && (
-      <EditProfileModal
-        user={user}
-        close={(updatedUser) => {
-          if (updatedUser && user) {
-            setUser({
-              ...user,
-              full_name: updatedUser.full_name || user.full_name,
-              phone: updatedUser.phone || user.phone,
-              Email: updatedUser.Email || user.Email,
-            });
-          }
-          setIsEditing(false);
-        }}
-      />
-    )}
-  </div>
-);
+  );
 }

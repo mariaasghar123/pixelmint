@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import toast from "react-hot-toast";
 
@@ -7,52 +6,66 @@ type EditProfileModalProps = {
   user: {
     full_name?: string;
     phone?: string;
-    Email?: string
+    email?: string;
+    username?: string;
   };
-  close: (data?: { full_name?: string; phone?: string; Email?: string }) => void;
+  close: (data?: { full_name?: string; phone?: string; email?: string; username?: string }) => void;
 };
 
 export default function EditProfileModal({ user, close }: EditProfileModalProps) {
-  const [full_name, setFullName] = useState<string>(user.full_name || "");
-  const [phone, setPhone] = useState<string>(user.phone || "");
-  // const [Email, setEmail] = useState<string>(user.Email ||"");
+  const [full_name, setFullName] = useState(user.full_name || "");
+  const [phone, setPhone] = useState(user.phone || "");
+  const [email, setEmail] = useState(user.email || "");
+  const [username, setUsername] = useState(user.username || "");
 
- const handleSave = async () => {
-  const updatedUser = { full_name, phone };
+  const handleSave = async () => {
+    const updatedUser = { full_name, phone, email, username };
 
-  const token = localStorage.getItem("jwt"); // dashboard ke token ke jaisa
+    const token = localStorage.getItem("jwt");
+    console.log("JWT Token =>", token); // Iska output zarur check karo
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/update`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updatedUser),
+    });
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/update`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(updatedUser),
-  });
+    if (!res.ok) {
+      toast.error("Failed to update profile ❌");
+      return;
+    }
 
-  if (!res.ok) {
-    toast.success("Failed to update profile ❌");
-    return;
-  }
-
-  const data = await res.json(); // ✅ backend se updated user milega
-  toast.success("Profile Updated ✅");
-
-  close(data); // ✅ Updated user ko parent (Dashboard) me bhej do
-};
-
+    const data = await res.json();
+    toast.success("Profile Updated ✅");
+    close(data);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[90%] max-w-md text-white">
         <h2 className="text-xl font-bold mb-4">Edit Profile</h2>
-
         <input
           type="text"
           placeholder="Full Name"
           value={full_name}
           onChange={(e) => setFullName(e.target.value)}
+          className="w-full bg-gray-800 p-2 rounded mb-3"
+        />
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="w-full bg-gray-800 p-2 rounded mb-3"
+        />
+
+        <input
+          type="email"
+          placeholder="Email Address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="w-full bg-gray-800 p-2 rounded mb-3"
         />
 
@@ -65,7 +78,8 @@ export default function EditProfileModal({ user, close }: EditProfileModalProps)
         />
 
         <div className="flex justify-end gap-3">
-          <button onClick={() => close()} className="px-4 py-2 bg-gray-600 rounded">            Cancel
+          <button onClick={() => close()} className="px-4 py-2 bg-gray-600 rounded">
+            Cancel
           </button>
           <button
             onClick={handleSave}
