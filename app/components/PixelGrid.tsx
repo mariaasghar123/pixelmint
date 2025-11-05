@@ -7,6 +7,7 @@ import {
   TransformComponent,
   useControls,
 } from "react-zoom-pan-pinch";
+import { User } from "lucide-react";
 
 const DEFAULT_CONFIG = {
   gridWidthCells: 160,
@@ -78,7 +79,7 @@ interface MouseCoords {
   y: number;
 }
 interface Block {
-  id: string;
+  //  id: string;
   x: number;
   y: number;
   width: number;
@@ -145,24 +146,116 @@ useEffect(() => {
     y: number;
   } | null>(null);
 
-  const handleConfirmReservation = () => {
-    setIsConfirming(true);
+  // const handleConfirmReservation = () => {
+  //   setIsConfirming(true);
 
-    setTimeout(() => {
-      // Reservation complete hone ke baad loader hatao
-      setIsConfirming(false);
-      setShowModal(false);
+  //   setTimeout(() => {
+  //     // Reservation complete hone ke baad loader hatao
+  //     setIsConfirming(false);
+  //     setShowModal(false);
 
-      // Reserve pixels ko final list me add karo
-      // NOTE: This logic needs to generate the Block object from the selectionData and selectionStart/mouseCoords
-      // For now, keeping the user's placeholder logic:
-      if (selectedBlock) {
-        setReservedBlocks((prev) => [...prev, selectedBlock]);
+  //     // Reserve pixels ko final list me add karo
+  //     // NOTE: This logic needs to generate the Block object from the selectionData and selectionStart/mouseCoords
+  //     // For now, keeping the user's placeholder logic:
+  //     if (selectedBlock) {
+  //       setReservedBlocks((prev) => [...prev, selectedBlock]);
+  //     }
+  //     setSelectedBlock(null);
+  //     setShowConfirmMessage(true);
+  //   }, 2000);
+  // };
+
+
+
+
+
+
+// Pixel Reservation Handler
+// const handleConfirmReservation = () => {
+//   setIsConfirming(true); // Loader start
+//   setTimeout(async () => {
+//     try {
+//       if (!selectedBlock) return;
+
+//       const token = localStorage.getItem("jwt");
+//       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pixels/reserve`, {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${token}`,
+//         },
+//         body: JSON.stringify(selectedBlock),
+//       });
+
+//       if (!res.ok) throw new Error("Failed to reserve pixels");
+
+//       const savedBlock = await res.json();
+
+//       // Add to frontend reserved blocks
+//       setReservedBlocks((prev) => [...prev, savedBlock]);
+//       setSelectedBlock(null);
+
+//       // Show confirmation message
+//       setShowConfirmMessage(true);
+
+//       // Auto hide message after 3 seconds
+//       setTimeout(() => setShowConfirmMessage(false), 3000);
+
+//     } catch (err) {
+//       console.error(err);
+//     } finally {
+//       setIsConfirming(false); // Loader stop
+//       setShowModal(false); // Close modal
+//     }
+//   }, 2000); // Keeps the loader visible for 2s
+// };
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+const handleConfirmReservation = async () => {
+  const token = localStorage.getItem("jwt");
+
+  if (!token) {
+    router.push("/login");
+    return;
+  }
+
+  setIsConfirming(true);
+
+  setTimeout(async () => {
+    try {
+      if (!selectedBlock) return;
+
+      const res = await fetch(`${API_URL}/pixels/reserve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(selectedBlock),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("API Error:", res.status, text);
+        throw new Error("Failed to reserve pixels");
       }
+
+      const savedBlock = await res.json();
+      setReservedBlocks((prev) => [...prev, savedBlock]);
       setSelectedBlock(null);
       setShowConfirmMessage(true);
-    }, 2000);
-  };
+
+      setTimeout(() => setShowConfirmMessage(false), 3000);
+    } catch (err) {
+      console.error("Reservation Error:", err);
+      alert(`Something went wrong: ${err.message}`);
+    } finally {
+      setIsConfirming(false);
+      setShowModal(false);
+    }
+  }, 1000);
+};
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!showStatusButtons) return; // Only allow selection if 'Buy Pixels' is clicked
@@ -195,15 +288,14 @@ useEffect(() => {
     setSelectionData({ width, height, totalPixels, price });
 
     // NOTE: Generating a temporary block ID here for the reservation flow
+
     setSelectedBlock({
-      id: `temp-${Date.now()}`,
       x: x1,
       y: y1,
       width: width,
       height: height,
-      ownerId: "current-user-temp",
+      ownerId: User.id,
     });
-
     setShowModal(true);
     setIsSelecting(false);
     setSelectionStart(null);

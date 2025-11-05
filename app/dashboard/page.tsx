@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import EditProfileModal from "./EditProfileModal";
+// import { Link } from "lucide-react";
+import Link from "next/link";
 
 interface User {
   full_name: string;
@@ -18,6 +20,7 @@ export default function Dashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [pixels, setPixels] = useState([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -30,6 +33,14 @@ export default function Dashboard() {
       if (!res.ok) return router.push("/login");
       const data = await res.json();
       setUser(data);
+
+      // ✅ Now fetch user's pixels
+    const pixelRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pixels/my-pixels`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const pixelData = await pixelRes.json();
+    setPixels(pixelData); // Save pixels from DB ✅
       setLoading(false);
     };
     fetchUser();
@@ -145,22 +156,60 @@ export default function Dashboard() {
                 <h1 className="text-3xl font-bold">Buy Pixels</h1>
                 <p className="text-gray-300">Purchase pixels to display your ad</p>
               </div>
+              <Link href="/">
               <button className="bg-[#00ff88] text-black px-6 py-2 rounded-lg font-bold mt-2 md:mt-0">
                 Buy Pixels
-              </button>
+              </button> </Link>
             </div>
 
             <div className="mt-8 bg-white/10 p-6 rounded-xl border border-gray-700">
-              <h2 className="text-xl font-semibold">🎨 Your Pixels</h2>
-              <p className="text-gray-300 mt-2">
-                Total Pixels Bought:{" "}
-                <span className="text-[#00ff88] font-bold">{user?.pixelsBought || 0}</span>
-              </p>
-            </div>
+  <h2 className="text-xl font-semibold">🎨 Your Pixels</h2>
+  <p className="text-gray-300 mt-2">
+    Total Pixels Bought:{" "}
+    <span className="text-[#00ff88] font-bold">{pixels.length}</span>
+  </p>
 
-            <div className="mt-6 h-64 md:h-[400px] bg-[#012d23] rounded-xl border border-gray-700 flex items-center justify-center text-gray-500">
+  {/* ✅ Pixel Details Table */}
+  <div className="mt-4 overflow-x-auto">
+    {pixels.length > 0 ? (
+      <table className="w-full text-sm text-left text-gray-300">
+        <thead className="text-gray-400 uppercase border-b border-gray-600">
+          <tr>
+            <th className="px-4 py-2">X</th>
+            <th className="px-4 py-2">Y</th>
+            <th className="px-4 py-2">Width</th>
+            <th className="px-4 py-2">Height</th>
+            {/* <th className="px-4 py-2">Image</th> */}
+          </tr>
+        </thead>
+        <tbody>
+          {pixels.map((pixel: any, index: number) => (
+            <tr key={index} className="border-b border-gray-700">
+              <td className="px-4 py-2">{pixel.x}</td>
+              <td className="px-4 py-2">{pixel.y}</td>
+              <td className="px-4 py-2">{pixel.width}</td>
+              <td className="px-4 py-2">{pixel.height}</td>
+              {/* <td className="px-4 py-2">
+                {pixel.imageUrl ? (
+                  <img src={pixel.imageUrl} className="w-10 h-10 rounded" />
+                ) : (
+                  "No Image"
+                )}
+              </td> */}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : (
+      <p className="text-gray-400 mt-4">No pixels purchased yet.</p>
+    )}
+  </div>
+</div>
+
+
+            {/* <div className="mt-6 h-64 md:h-[400px] bg-[#012d23] rounded-xl border border-gray-700 flex items-center justify-center text-gray-500">
               Pixel Grid / Preview Area
-            </div>
+            </div> */}
           </>
         )}
       </main>
