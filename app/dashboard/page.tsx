@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import EditProfileModal from "./EditProfileModal";
+import AddAds from "./component/Addads";
+import MyAds from "./component/Myads";
 // import { Link } from "lucide-react";
 import Link from "next/link";
 
@@ -23,6 +25,7 @@ interface Pixel {
 }
 
 export default function Dashboard() {
+    const [activePage, setActivePage] = useState("dashboard"); // default page
   const [user, setUser] = useState<User | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -96,7 +99,8 @@ export default function Dashboard() {
             {[
               { label: "👤 Profile", click: () => setShowProfile(true) },
               { label: "🎨 Your Pixels", click: () => setShowProfile(false) },
-              { label: "📊 My Ads", click: () => {} },
+              // { label: "📊 My Ads", click: () => {} },
+              { label: "📊 My Ads", click: () => setActivePage("myAds") },
               { label: "❓ Query", click: () => {} },
             ].map((item, i) => (
               <button

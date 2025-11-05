@@ -138,8 +138,6 @@ useEffect(() => {
   return () => window.removeEventListener("resize", updateScale);
 }, []);
 
-
-
   const [selectedCells, setSelectedCells] = useState([]);
   const [user, setUser] = useState<AppUser | null>(null); 
   const [showModal, setShowModal] = useState(false);
