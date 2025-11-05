@@ -85,7 +85,7 @@ interface Block {
   width: number;
   height: number;
   imageUrl?: string;
-  ownerId: string | number;
+  ownerId?: string | number;
 }
 
 
