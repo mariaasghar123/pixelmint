@@ -15,8 +15,8 @@ export default function AdminDashboard() {
     // ✅ Fetch data from API or Supabase
     async function fetchStats() {
       try {
-        const userRes = await fetch("http://localhost:3000/user/admin/users/count"); // total users
-        const pixelRes = await fetch("http://localhost:3000/user/admin/pixels/sold"); // total sold pixels
+        const userRes = await fetch("https://pixelmint-backend.onrender.com/user/admin/users/count"); // total users
+        const pixelRes = await fetch("https://pixelmint-backend.onrender.com/user/admin/pixels/sold"); // total sold pixels
 
         const users = await userRes.json();
         const pixels = await pixelRes.json();
