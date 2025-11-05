@@ -14,13 +14,21 @@ interface User {
   pixelsBought?: number;
 }
 
+interface Pixel {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  imageUrl?: string;
+}
+
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [pixels, setPixels] = useState([]);
+  const [pixels, setPixels] = useState<Pixel[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -183,7 +191,7 @@ export default function Dashboard() {
           </tr>
         </thead>
         <tbody>
-          {pixels.map((pixel: any, index: number) => (
+          {pixels.map((pixel, index) => (
             <tr key={index} className="border-b border-gray-700">
               <td className="px-4 py-2">{pixel.x}</td>
               <td className="px-4 py-2">{pixel.y}</td>

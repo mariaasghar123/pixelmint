@@ -79,15 +79,21 @@ interface MouseCoords {
   y: number;
 }
 interface Block {
-  //  id: string;
+  id?: string | number;   // ✅ Optional 
   x: number;
   y: number;
   width: number;
   height: number;
   imageUrl?: string;
-  ownerId: string;
+  ownerId: string | number;
 }
 
+
+interface AppUser {
+  id: string;
+  email?: string;
+  username?: string;
+}
 const PixelGrid = () => {
   const router = useRouter();
   const {
@@ -135,6 +141,7 @@ useEffect(() => {
 
 
   const [selectedCells, setSelectedCells] = useState([]);
+  const [user, setUser] = useState<AppUser | null>(null); 
   const [showModal, setShowModal] = useState(false);
   const [selectionData, setSelectionData] = useState<SelectionData | null>(
     null
@@ -249,7 +256,8 @@ const handleConfirmReservation = async () => {
       setTimeout(() => setShowConfirmMessage(false), 3000);
     } catch (err) {
       console.error("Reservation Error:", err);
-      alert(`Something went wrong: ${err.message}`);
+      const errorMessage = (err as Error).message;
+      alert(`Something went wrong: ${errorMessage}`);
     } finally {
       setIsConfirming(false);
       setShowModal(false);
@@ -294,8 +302,8 @@ const handleConfirmReservation = async () => {
       y: y1,
       width: width,
       height: height,
-      ownerId: User.id,
-    });
+      ownerId: user?.id
+});
     setShowModal(true);
     setIsSelecting(false);
     setSelectionStart(null);
@@ -781,7 +789,9 @@ const handleConfirmReservation = async () => {
                         <div
                           key={`mag-${block.id}`}
                           className={`absolute border border-gray-600 overflow-hidden ${
-                            block.ownerId?.includes("placeholder")
+                            // block.ownerId?.includes("placeholder")
+                            block.ownerId && typeof block.ownerId === "string" && block.ownerId.includes("placeholder")
+
                               ? "bg-red-700 opacity-60"
                               : "bg-blue-600 opacity-50"
                           }`}
@@ -846,7 +856,9 @@ const handleConfirmReservation = async () => {
                   <div
                     key={block.id}
                     className={`absolute border border-gray-600 overflow-hidden ${
-                      block.ownerId?.includes("placeholder")
+                      // block.ownerId?.includes("placeholder")
+                      block.ownerId && typeof block.ownerId === "string" && block.ownerId.includes("placeholder")
+
                         ? "bg-red-700 opacity-60"
                         : "bg-blue-600 opacity-50"
                     }`}
