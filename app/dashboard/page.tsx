@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import EditProfileModal from "./EditProfileModal";
-import AddAds from "./component/Addads";
 import MyAds from "./component/Myads";
+import QueryComponent from "./component/Query";
 // import { Link } from "lucide-react";
 import Link from "next/link";
 
@@ -25,7 +25,7 @@ interface Pixel {
 }
 
 export default function Dashboard() {
-    const [activePage, setActivePage] = useState("dashboard"); // default page
+    const [activePage, setActivePage] = useState("pixels"); // default page
   const [user, setUser] = useState<User | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -97,20 +97,20 @@ export default function Dashboard() {
 
           <nav className="mt-6 flex flex-col gap-3">
             {[
-              { label: "👤 Profile", click: () => setShowProfile(true) },
-              { label: "🎨 Your Pixels", click: () => setShowProfile(false) },
-              // { label: "📊 My Ads", click: () => {} },
-              { label: "📊 My Ads", click: () => setActivePage("myAds") },
-              { label: "❓ Query", click: () => {} },
-            ].map((item, i) => (
-              <button
-                key={i}
-                onClick={item.click}
-                className="hover:text-[#00ff88] px-2 py-2 rounded-lg text-left transition-all hover:bg-white/10"
-              >
-                {item.label}
-              </button>
-            ))}
+  { label: "👤 Profile", click: () => setActivePage("profile") },
+  { label: "🎨 Your Pixels", click: () => setActivePage("pixels") },
+  { label: "📊 My Ads", click: () => setActivePage("myAds") },
+  { label: "❓ Query", click: () => setActivePage("query") },
+].map((item, i) => (
+  <button
+    key={i}
+    onClick={item.click}
+    className="hover:text-[#00ff88] px-2 py-2 rounded-lg text-left transition-all hover:bg-white/10"
+  >
+    {item.label}
+  </button>
+))}
+
           </nav>
 
           <button
@@ -123,108 +123,107 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 text-white">
-        {showProfile ? (
-          <div className="w-full max-w-md mx-auto mt-20 bg-gradient-to-b from-gray-800 to-gray-900 p-6 rounded-2xl border border-gray-700 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-            <div className="flex items-center gap-4 border-b border-gray-700 pb-4 mb-4">
-              <img
-                src="/images/card.png"
-                className="w-16 h-16 rounded-full border-2 border-[#00ff88] shadow-md"
-                alt="Profile"
-              />
-              <h2 className="text-2xl font-bold text-white">Profile Details</h2>
-            </div>
-            <div className="space-y-3 text-gray-200">
-              <p className="flex justify-between">
-                <span className="font-semibold text-gray-400">Name:</span>
-                <span>{user?.full_name}</span>
-              </p>
-              <p className="flex justify-between">
-                <span className="font-semibold text-gray-400">Email:</span>
-                <span>{user?.email}</span>
-              </p>
-              <p className="flex justify-between">
-                <span className="font-semibold text-gray-400">Username:</span>
-                <span>{user?.username}</span>
-              </p>
-              <p className="flex justify-between">
-                <span className="font-semibold text-gray-400">Phone:</span>
-                <span>{user?.phone || "Not Provided"}</span>
-              </p>
-            </div>
+     <main className="flex-1 p-4 md:p-8 text-white">
+  {activePage === "profile" && (
+    <div className="w-full max-w-md mx-auto mt-20 bg-gradient-to-b from-gray-800 to-gray-900 p-6 rounded-2xl border border-gray-700 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+      {/* Profile content */}
+      <div className="flex items-center gap-4 border-b border-gray-700 pb-4 mb-4">
+        <img
+          src="/images/card.png"
+          className="w-16 h-16 rounded-full border-2 border-[#00ff88] shadow-md"
+          alt="Profile"
+        />
+        <h2 className="text-2xl font-bold text-white">Profile Details</h2>
+      </div>
+      <div className="space-y-3 text-gray-200">
+        <p className="flex justify-between">
+          <span className="font-semibold text-gray-400">Name:</span>
+          <span>{user?.full_name}</span>
+        </p>
+        <p className="flex justify-between">
+          <span className="font-semibold text-gray-400">Email:</span>
+          <span>{user?.email}</span>
+        </p>
+        <p className="flex justify-between">
+          <span className="font-semibold text-gray-400">Username:</span>
+          <span>{user?.username}</span>
+        </p>
+        <p className="flex justify-between">
+          <span className="font-semibold text-gray-400">Phone:</span>
+          <span>{user?.phone || "Not Provided"}</span>
+        </p>
+      </div>
 
-            <button
-              onClick={() => setIsEditing(true)}
-              className="mt-6 w-full py-2 bg-[#00ff88] hover:bg-[#00e676] text-black font-semibold rounded-lg transform hover:scale-[1.02] transition-all duration-200"
-            >
-              ✏️ Edit Profile
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Pixel Page */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
-              <div>
-                <h1 className="text-3xl font-bold">Buy Pixels</h1>
-                <p className="text-gray-300">Purchase pixels to display your ad</p>
-              </div>
-              <Link href="/">
-              <button className="bg-[#00ff88] text-black px-6 py-2 rounded-lg font-bold mt-2 md:mt-0">
-                Buy Pixels
-              </button> </Link>
-            </div>
+      <button
+        onClick={() => setIsEditing(true)}
+        className="mt-6 w-full py-2 bg-[#00ff88] hover:bg-[#00e676] text-black font-semibold rounded-lg transform hover:scale-[1.02] transition-all duration-200"
+      >
+        ✏️ Edit Profile
+      </button>
+    </div>
+  )}
 
-            <div className="mt-8 bg-white/10 p-6 rounded-xl border border-gray-700">
-  <h2 className="text-xl font-semibold">🎨 Your Pixels</h2>
-  <p className="text-gray-300 mt-2">
-    Total Pixels Bought:{" "}
-    <span className="text-[#00ff88] font-bold">{pixels.length}</span>
-  </p>
+  {activePage === "pixels" && (
+    <div>
+      {/* Pixel Page */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
+        <div>
+          <h1 className="text-3xl font-bold">Buy Pixels</h1>
+          <p className="text-gray-300">Purchase pixels to display your ad</p>
+        </div>
+        <Link href="/">
+          <button className="bg-[#00ff88] text-black px-6 py-2 rounded-lg font-bold mt-2 md:mt-0">
+            Buy Pixels
+          </button>
+        </Link>
+      </div>
 
-  {/* ✅ Pixel Details Table */}
-  <div className="mt-4 overflow-x-auto">
-    {pixels.length > 0 ? (
-      <table className="w-full text-sm text-left text-gray-300">
-        <thead className="text-gray-400 uppercase border-b border-gray-600">
-          <tr>
-            <th className="px-4 py-2">X</th>
-            <th className="px-4 py-2">Y</th>
-            <th className="px-4 py-2">Width</th>
-            <th className="px-4 py-2">Height</th>
-            {/* <th className="px-4 py-2">Image</th> */}
-          </tr>
-        </thead>
-        <tbody>
-          {pixels.map((pixel, index) => (
-            <tr key={index} className="border-b border-gray-700">
-              <td className="px-4 py-2">{pixel.x}</td>
-              <td className="px-4 py-2">{pixel.y}</td>
-              <td className="px-4 py-2">{pixel.width}</td>
-              <td className="px-4 py-2">{pixel.height}</td>
-              {/* <td className="px-4 py-2">
-                {pixel.imageUrl ? (
-                  <img src={pixel.imageUrl} className="w-10 h-10 rounded" />
-                ) : (
-                  "No Image"
-                )}
-              </td> */}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    ) : (
-      <p className="text-gray-400 mt-4">No pixels purchased yet.</p>
-    )}
-  </div>
-</div>
+      <div className="mt-8 bg-white/10 p-6 rounded-xl border border-gray-700">
+        <h2 className="text-xl font-semibold">🎨 Your Pixels</h2>
+        <p className="text-gray-300 mt-2">
+          Total Pixels Bought:{" "}
+          <span className="text-[#00ff88] font-bold">{pixels.length}</span>
+        </p>
 
+        {/* Pixel Table */}
+        <div className="mt-4 overflow-x-auto">
+          {pixels.length > 0 ? (
+            <table className="w-full text-sm text-left text-gray-300">
+              <thead className="text-gray-400 uppercase border-b border-gray-600">
+                <tr>
+                  <th className="px-4 py-2">X</th>
+                  <th className="px-4 py-2">Y</th>
+                  <th className="px-4 py-2">Width</th>
+                  <th className="px-4 py-2">Height</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pixels.map((pixel, index) => (
+                  <tr key={index} className="border-b border-gray-700">
+                    <td className="px-4 py-2">{pixel.x}</td>
+                    <td className="px-4 py-2">{pixel.y}</td>
+                    <td className="px-4 py-2">{pixel.width}</td>
+                    <td className="px-4 py-2">{pixel.height}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="text-gray-400 mt-4">No pixels purchased yet.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )}
 
-            {/* <div className="mt-6 h-64 md:h-[400px] bg-[#012d23] rounded-xl border border-gray-700 flex items-center justify-center text-gray-500">
-              Pixel Grid / Preview Area
-            </div> */}
-          </>
-        )}
-      </main>
+  {activePage === "myAds" && <MyAds />}
+
+  {activePage === "query" && <QueryComponent onQuery={(queryText) => {
+    console.log("User query:", queryText);
+    // You can also save the query to state or send it to backend
+  }} />}
+</main>
+
 
       {/* Edit Modal */}
       {isEditing && user && (
