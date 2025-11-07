@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [stats, setStats] = useState({ users: 0, pixelsSold: 0 });
+  const [stats, setStats] = useState({ users: 0, pixelsSold: 0, purchasedPixels: 0, });
 
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("isAdmin") !== "true") {
@@ -14,12 +14,18 @@ export default function AdminDashboard() {
     }
 
     async function fetchStats() {
+      const API_URL = process.env.NODE_ENV === "production"
+        ? process.env.NEXT_PUBLIC_API_URL // Render backend
+        :
+   "http://localhost:3000";
       try {
         const userRes = await fetch("https://pixelmint-backend.onrender.com/user/admin/users/count");
         const pixelRes = await fetch("https://pixelmint-backend.onrender.com/user/admin/pixels/sold");
+        const purchasesRes = await fetch(`${API_URL}/admin/total-sold`);
         const users = await userRes.json();
         const pixels = await pixelRes.json();
-        setStats({ users: users.count, pixelsSold: pixels.total });
+            const purchases = await purchasesRes.json();
+        setStats({ users: users.count, pixelsSold: pixels.total, purchasedPixels: purchases.totalPixels, });
       } catch (error) {
         console.error("Error fetching stats:", error);
       }
@@ -62,19 +68,29 @@ export default function AdminDashboard() {
           className="bg-[#053428]/70 border border-[#0a5c41] backdrop-blur-xl rounded-2xl shadow-lg p-6 hover:shadow-[#19f58a]/30 hover:shadow-lg transition"
         >
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <FaThLarge className="text-[#19f58a]" /> Total Sold Pixels
+            <FaThLarge className="text-[#19f58a]" /> Total Reserved Pixels
           </h2>
           <p className="text-4xl font-extrabold mt-4 text-[#19f58a]">{stats.pixelsSold}</p>
         </motion.div>
+        <motion.div
+  whileHover={{ scale: 1.05 }}
+  className="bg-[#053428]/70 border border-[#0a5c41] backdrop-blur-xl rounded-2xl shadow-lg p-6 hover:shadow-[#19f58a]/30 hover:shadow-lg transition"
+>
+  <h2 className="text-lg font-semibold">💰 Total Purchased Pixels</h2>
+  <p className="text-4xl font-extrabold mt-4 text-[#19f58a]">
+    {stats.purchasedPixels}
+  </p>
+</motion.div>
+
 
         {/* Example extra card for future stats */}
-        <motion.div
+        {/* <motion.div
           whileHover={{ scale: 1.05 }}
           className="bg-[#053428]/70 border border-[#0a5c41] backdrop-blur-xl rounded-2xl shadow-lg p-6 hover:shadow-[#19f58a]/30 hover:shadow-lg transition"
         >
           <h2 className="text-lg font-semibold">🟢 Active Ads</h2>
           <p className="text-4xl font-extrabold mt-4 text-gray-400">Coming Soon</p>
-        </motion.div>
+        </motion.div> */}
       </div>
     </div>
   );

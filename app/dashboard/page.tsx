@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import EditProfileModal from "./EditProfileModal";
 import MyAds from "./component/Myads";
 import QueryComponent from "./component/Query";
+import PurchaseHistory from "./component/PurchasePixel";
 // import { Link } from "lucide-react";
 import Link from "next/link";
 
@@ -99,6 +100,7 @@ export default function Dashboard() {
             {[
   { label: "👤 Profile", click: () => setActivePage("profile") },
   { label: "🎨 Your Pixels", click: () => setActivePage("pixels") },
+  { label: "💸 Purchases", click: () => setActivePage("purchases") },
   { label: "📊 My Ads", click: () => setActivePage("myAds") },
   { label: "❓ Query", click: () => setActivePage("query") },
 ].map((item, i) => (
@@ -162,6 +164,7 @@ export default function Dashboard() {
       </button>
     </div>
   )}
+  {activePage === "purchases" && <PurchaseHistory />}
 
   {activePage === "pixels" && (
     <div>
