@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import BuyPixelsFallback from "./BuypixelFallback";
 // next/navigation is being used via useRouter
 import { useRouter } from "next/navigation";
 import {
@@ -106,7 +107,11 @@ const PixelGrid = () => {
   const totalGridWidthPx = gridWidthCells * cellSize;
   const totalGridHeightPx = gridHeightCells * cellSize;
   const [reservedBlocks, setReservedBlocks] = useState<Block[]>([]);
+    const [showPayment, setShowPayment] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
+
+  const [showBuyPixels, setShowBuyPixels] = useState(false);
+
   const [hoverPixel, setHoverPixel] = useState<{
     x: number;
     y: number;
@@ -120,6 +125,15 @@ const PixelGrid = () => {
   const gridContainerRef = useRef<HTMLDivElement | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [showConfirmMessage, setShowConfirmMessage] = useState(false);
+  // const [selectionData, setSelectionData] = useState<{ width: number; height: number; totalPixels: number; price: number } | null>(null);
+
+
+const handlePixelSelect = (width: number, height: number) => {
+  const totalPixels = width * height;
+  const price = totalPixels; // 1 pixel = 1 unit currency
+  setSelectionData({ width, height, totalPixels, price });
+  setShowBuyPixels(true); // trigger payment UI
+};
 
   const magnifierSize = 200;
   const [fullscreen, setFullscreen] = useState(false);
@@ -538,7 +552,11 @@ const handleConfirmReservation = async () => {
     }
     return lines;
   };
+  console.log("showBuyPixels:", showBuyPixels);
+console.log("user:", user);
+console.log("selectionData:", selectionData);
 
+// console.log("Supabase Session:", await supabase.auth.getSession());
   // Main grid fullscreen logic
   return (
     <div className="flex flex-col items-center w-[300px] sm:w-[600px] md:w-[800px] lg:w-[1200px] xl:w-[1800px]  bg-[#002320] min-h-screen px-2 sm:px-4">
@@ -722,7 +740,6 @@ const handleConfirmReservation = async () => {
                       <h2 className="text-xl font-bold mb-3">
                         Pixels Reserved!
                       </h2>
-
                       <p className="text-sm opacity-90 mb-6">
                         You have successfully reserved these pixels.
                       </p>
@@ -879,8 +896,22 @@ const handleConfirmReservation = async () => {
               </div>
             </TransformComponent>
           </>
+          
         </TransformWrapper>
+        {showBuyPixels && selectionData && (
+  <div className=" fixed inset-0 bg-black/60 flex justify-center items-center z-[9999]">
+    <div className="animate-fadeIn">
+      <BuyPixelsFallback
+        userId={user ? user.id : "guest"}
+        pixels={selectionData.totalPixels}
+        price={selectionData.price}
+        onClose={() => setShowBuyPixels(false)}
+      />
+    </div>
+  </div>
+)}
       </div>
+      
       {/* Modal - Already Responsive (fixed inset-0) */}
       {showModal && selectionData && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-[99999]">
@@ -927,7 +958,15 @@ const handleConfirmReservation = async () => {
               >
                 {isConfirming ? "Confirming..." : "Confirm Reservation"}
               </button>
-
+              <button
+    onClick={() => {
+      setShowModal(false);          // Hide the reservation modal
+      setShowBuyPixels(true);       // Show BuyPixelsFallback component
+    }}
+    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition"
+  >
+    Buy
+  </button>
               <button
                 className="bg-red-600 hover:bg-red-700 text-black px-6 py-2 rounded-lg font-custom font-semibold transition"
                 onClick={() => setShowModal(false)}

@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaUsers, FaThLarge } from "react-icons/fa";
 import { motion } from "framer-motion";
+import BuyPixelsFallback from "@/app/components/BuypixelFallback";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -76,6 +77,7 @@ export default function AdminDashboard() {
           <p className="text-4xl font-extrabold mt-4 text-gray-400">Coming Soon</p>
         </motion.div>
       </div>
+      <BuyPixelsFallback userId={"admin-dashboard"} />
     </div>
   );
 }
