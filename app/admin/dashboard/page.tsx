@@ -8,30 +8,86 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState({ users: 0, pixelsSold: 0, purchasedPixels: 0, });
 
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
   useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("isAdmin") !== "true") {
+    // ✅ Auth check
+    const isAdmin = localStorage.getItem("isAdmin");
+    if (isAdmin !== "true") {
       router.push("/admin/login");
+      return;
     }
 
     async function fetchStats() {
-      const API_URL = process.env.NODE_ENV === "production"
-        ? process.env.NEXT_PUBLIC_API_URL // Render backend
-        :
-   "http://localhost:3000";
+      const API_URL =
+        process.env.NODE_ENV === "production"
+          ? process.env.NEXT_PUBLIC_API_URL
+          : "http://localhost:3000";
       try {
-        const userRes = await fetch("https://pixelmint-backend.onrender.com/user/admin/users/count");
-        const pixelRes = await fetch("https://pixelmint-backend.onrender.com/user/admin/pixels/sold");
+        const userRes = await fetch(
+          `${API_URL}/user/admin/users/count`
+        );
+        const pixelRes = await fetch(
+          `${API_URL}/user/admin/pixels/sold`
+        );
         const purchasesRes = await fetch(`${API_URL}/admin/total-sold`);
+
         const users = await userRes.json();
         const pixels = await pixelRes.json();
-            const purchases = await purchasesRes.json();
-        setStats({ users: users.count, pixelsSold: pixels.total, purchasedPixels: purchases.totalPixels, });
+        const purchases = await purchasesRes.json();
+
+        setStats({
+          users: users.count,
+          pixelsSold: pixels.total,
+          purchasedPixels: purchases.totalPixels,
+        });
       } catch (error) {
         console.error("Error fetching stats:", error);
+      } finally {
+        setIsCheckingAuth(false);
       }
     }
+
     fetchStats();
-  }, []);
+  }, [router]);
+  // 🌀 Stylish Animated Loading Screen
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-[#001f1a] via-[#002d22] to-[#001915] text-white">
+        <motion.div
+          className="w-16 h-16 border-4 border-t-4 border-t-green-400 border-gray-700 rounded-full"
+          animate={{ rotate: 360 }}
+          transition={{
+            repeat: Infinity,
+            duration: 1,
+            ease: "linear",
+          }}
+        ></motion.div>
+        <motion.p
+          className="mt-6 text-lg font-semibold tracking-wide text-green-300"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            repeat: Infinity,
+            repeatType: "reverse",
+            duration: 1.2,
+          }}
+        >
+          Loading...
+        </motion.p>
+      </div>
+    );
+  }
+
+
+  // ✅ Don't render anything while checking auth
+  // if (isCheckingAuth) {
+  //   return (
+  //     <div className="min-h-screen flex justify-center items-center bg-[#001f1a] text-white">
+  //       <p className="text-lg">Loading...</p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#001f1a] via-[#002d22] to-[#001915] text-white p-6 md:p-10">

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+
 
 interface Purchase {
   id: string;
@@ -55,7 +57,33 @@ export default function PurchaseHistory() {
     fetchPurchases();
   }, []);
 
-  if (loading) return <p className="text-gray-300">Loading purchases...</p>;
+  if (loading) {
+      return (
+        <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-[#001f1a] via-[#002d22] to-[#001915] text-white">
+          <motion.div
+            className="w-16 h-16 border-4 border-t-4 border-t-green-400 border-gray-700 rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{
+              repeat: Infinity,
+              duration: 1,
+              ease: "linear",
+            }}
+          ></motion.div>
+          <motion.p
+            className="mt-6 text-lg font-semibold tracking-wide text-green-300"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              repeat: Infinity,
+              repeatType: "reverse",
+              duration: 1.2,
+            }}
+          >
+            Loading...
+          </motion.p>
+        </div>
+      );
+    }
   if (error) return <p className="text-red-400">{error}</p>;
 
   return (

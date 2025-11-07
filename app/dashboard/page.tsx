@@ -6,6 +6,8 @@ import EditProfileModal from "./EditProfileModal";
 import MyAds from "./component/Myads";
 import QueryComponent from "./component/Query";
 import PurchaseHistory from "./component/PurchasePixel";
+import { motion } from "framer-motion";
+
 // import { Link } from "lucide-react";
 import Link from "next/link";
 
@@ -63,8 +65,33 @@ export default function Dashboard() {
     router.push("/login");
   };
 
-  if (loading)
-    return <p className="text-center text-white mt-10">Loading...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-[#001f1a] via-[#002d22] to-[#001915] text-white">
+        <motion.div
+          className="w-16 h-16 border-4 border-t-4 border-t-green-400 border-gray-700 rounded-full"
+          animate={{ rotate: 360 }}
+          transition={{
+            repeat: Infinity,
+            duration: 1,
+            ease: "linear",
+          }}
+        ></motion.div>
+        <motion.p
+          className="mt-6 text-lg font-semibold tracking-wide text-green-300"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            repeat: Infinity,
+            repeatType: "reverse",
+            duration: 1.2,
+          }}
+        >
+          Loading...
+        </motion.p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#013220] flex flex-col md:flex-row">
