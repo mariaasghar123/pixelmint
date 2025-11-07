@@ -19,7 +19,7 @@ const QueryComponent: React.FC<QueryComponentProps> = ({ onQuery }) => {
       </div>
 
       {/* Main Content - Responsive Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Left Card - Unique Code */}
         <div className="bg-[#00382A]/80 border border-[#0a5c41] backdrop-blur-md p-5 sm:p-6 rounded-xl shadow-lg hover:shadow-[#19f58a]/20 transition">
           <h2 className="text-lg sm:text-xl font-semibold mb-2">
