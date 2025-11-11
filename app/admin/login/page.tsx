@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -37,11 +39,12 @@ export default function AdminLogin() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#002b23] px-4">
       {/* Logo Section */}
       <div className="mb-8">
+        <Link href="/">
         <img
           src="/images/MyPixelMint1.svg"
           alt="Logo"
           className="w-28 mx-auto"
-        />
+        /> </Link>
       </div>
 
       {/* Login Card */}

@@ -11,19 +11,21 @@ const Navbar = () => {
       <div className="flex items-center gap-2">
         {/* Desktop Logo */}
         <div className="flex items-center justify-center w-[60px] h-[70px] overflow-hidden hidden sm:flex">
+          <Link href="/">
           <img
             src="/images/MyPixelMint1.svg"
             alt="Logo"
             className="w-full h-full object-contain"
-          />
+          /> </Link>
         </div>
         {/* Mobile Logo */}
         <div className="sm:hidden flex items-center gap-2">
+          <Link href="/">
           <img
             src="/images/Group.png"
             alt="Logo"
             className="w-[40px] h-[45px] object-contain"
-          />
+          /> </Link>
           <span className="font-custom text-lg">
             <span className="text-[#1E894B] font-custom">my</span> PixelMint
           </span>

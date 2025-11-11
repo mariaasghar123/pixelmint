@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import BuyPixelsFallback from "./BuypixelFallback";
+import html2canvas from "html2canvas";
+
 // next/navigation is being used via useRouter
 import { useRouter } from "next/navigation";
 import {
@@ -17,6 +19,9 @@ const DEFAULT_CONFIG = {
   defaultBlockWidth: 5,
   defaultBlockHeight: 5,
 };
+
+
+
 
 // Dummy data remains unchanged
 const DUMMY_INITIAL_BLOCKS = [
@@ -80,7 +85,7 @@ interface MouseCoords {
   y: number;
 }
 interface Block {
-  id?: string | number;   // ✅ Optional 
+  id?: string | number; // ✅ Optional
   x: number;
   y: number;
   width: number;
@@ -88,7 +93,6 @@ interface Block {
   imageUrl?: string;
   ownerId?: string | number;
 }
-
 
 interface AppUser {
   id: string;
@@ -107,8 +111,17 @@ const PixelGrid = () => {
   const totalGridWidthPx = gridWidthCells * cellSize;
   const totalGridHeightPx = gridHeightCells * cellSize;
   const [reservedBlocks, setReservedBlocks] = useState<Block[]>([]);
-    const [showPayment, setShowPayment] = useState(false);
-  const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  // const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
+// State definition me ensure karo ke imageUrl bhi ho
+const [selectedBlock, setSelectedBlock] = useState<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  ownerId: string;
+  imageurl: string; // ✅ important
+} | null>(null);
 
   const [showBuyPixels, setShowBuyPixels] = useState(false);
 
@@ -127,34 +140,162 @@ const PixelGrid = () => {
   const [showConfirmMessage, setShowConfirmMessage] = useState(false);
   // const [selectionData, setSelectionData] = useState<{ width: number; height: number; totalPixels: number; price: number } | null>(null);
 
+  const handlePixelSelect = (width: number, height: number) => {
+    const totalPixels = width * height;
+    const price = totalPixels; // 1 pixel = 1 unit currency
+    setSelectionData({ width, height, totalPixels, price });
+    setShowBuyPixels(true); // trigger payment UI
+  };
 
-const handlePixelSelect = (width: number, height: number) => {
-  const totalPixels = width * height;
-  const price = totalPixels; // 1 pixel = 1 unit currency
-  setSelectionData({ width, height, totalPixels, price });
-  setShowBuyPixels(true); // trigger payment UI
+//  const captureSelectedArea = async (x:number, y:number, width:number, height:number) => {
+//   if (!gridContainerRef.current) return null;
+
+//   // Ensure images are loaded
+//   await Promise.all(
+//     Array.from(gridContainerRef.current.querySelectorAll('img')).map(
+//       (img: HTMLImageElement) =>
+//         new Promise<void>((resolve) => {
+//           if (img.complete) resolve();
+//           else img.onload = () => resolve();
+//         })
+//     )
+//   );
+
+//   // Temporarily remove transform for correct capture
+//   const originalTransform = gridContainerRef.current.style.transform;
+//   gridContainerRef.current.style.transform = 'scale(1)';
+
+//   const canvas = await html2canvas(gridContainerRef.current, {
+//     useCORS: true,
+//     allowTaint: false,
+//     scale: 1,
+//   });
+
+//   // revert transform
+//   gridContainerRef.current.style.transform = originalTransform;
+
+//   // Crop selected area
+//   const croppedCanvas = document.createElement("canvas");
+//   const ctx = croppedCanvas.getContext("2d");
+//   croppedCanvas.width = width * cellSize;
+//   croppedCanvas.height = height * cellSize;
+
+//   const scale = 0.5; // match TransformComponent scale
+
+//   ctx?.drawImage(
+//     canvas,
+//     x * cellSize * scale,
+//     y * cellSize * scale,
+//     width * cellSize * scale,
+//     height * cellSize * scale,
+//     0,
+//     0,
+//     width * cellSize,
+//     height * cellSize
+//   );
+
+//   return croppedCanvas.toDataURL("image/png");
+// };
+
+const captureSelectedArea = async (x:number, y:number, width:number, height:number) => {
+  if (!gridContainerRef.current) {
+    console.error("Grid container not found");
+    return null;
+  }
+
+  const container = gridContainerRef.current;
+
+  // Set CORS for images
+  Array.from(container.querySelectorAll("img")).forEach((img) => {
+    img.crossOrigin = "anonymous";
+  });
+
+  // Wait for all images to load
+  await Promise.all(
+    Array.from(container.querySelectorAll("img")).map(
+      (img) =>
+        new Promise((resolve) => {
+          img.onload = () => resolve(null);
+          img.onerror = () => {
+            console.warn("Image failed:", img.src);
+            resolve(null);
+          };
+          if (img.complete) resolve(null);
+        })
+    )
+  );
+
+  // Wait for DOM to settle
+  await new Promise((r) => setTimeout(r, 200));
+
+  const originalTransform = container.style.transform;
+  container.style.transform = "scale(1)";
+
+  let canvas;
+  try {
+    canvas = await html2canvas(container, {
+      useCORS: true,
+      allowTaint: false,
+      scale: 1,
+      logging: true,
+    });
+  } catch (err) {
+    console.error("html2canvas failed:", err);
+    container.style.transform = originalTransform;
+    return null;
+  }
+
+  container.style.transform = originalTransform;
+
+  const croppedCanvas = document.createElement("canvas");
+  const ctx = croppedCanvas.getContext("2d");
+  if (!ctx) {
+    console.error("Canvas context missing");
+    return null;
+  }
+
+  croppedCanvas.width = width * cellSize;
+  croppedCanvas.height = height * cellSize;
+
+  const scale = 1; // adjust if using zoom
+  ctx.drawImage(
+    canvas,
+    x * cellSize * scale,
+    y * cellSize * scale,
+    width * cellSize * scale,
+    height * cellSize * scale,
+    0,
+    0,
+    width * cellSize,
+    height * cellSize
+  );
+
+  const result = croppedCanvas.toDataURL("image/png");
+  console.log("Capture success:", !!result);
+  return result;
 };
+
 
   const magnifierSize = 200;
   const [fullscreen, setFullscreen] = useState(false);
   const [initialScale, setInitialScale] = useState(1);
 
-useEffect(() => {
-  const updateScale = () => {
-    const width = window.innerWidth;
-    if (width < 400) setInitialScale(0.25);
-    else if (width < 600) setInitialScale(0.35);
-    else if (width < 900) setInitialScale(0.5);
-    else setInitialScale(1);
-  };
-  updateScale();
-  window.addEventListener("resize", updateScale);
-  return () => window.removeEventListener("resize", updateScale);
-}, []);
+  useEffect(() => {
+    const updateScale = () => {
+      const width = window.innerWidth;
+      if (width < 400) setInitialScale(0.25);
+      else if (width < 600) setInitialScale(0.35);
+      else if (width < 900) setInitialScale(0.5);
+      else setInitialScale(1);
+    };
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, []);
+
 
   const [selectedCells, setSelectedCells] = useState([]);
-  const [user, setUser] = useState<AppUser | null>(null); 
-  const [showModal, setShowModal] = useState(false);
+const [user, setUser] = useState<{ id: string; username: string } | null>(null);  const [showModal, setShowModal] = useState(false);
   const [selectionData, setSelectionData] = useState<SelectionData | null>(
     null
   );
@@ -184,98 +325,109 @@ useEffect(() => {
   //   }, 2000);
   // };
 
+  // Pixel Reservation Handler
+  // const handleConfirmReservation = () => {
+  //   setIsConfirming(true); // Loader start
+  //   setTimeout(async () => {
+  //     try {
+  //       if (!selectedBlock) return;
 
+  //       const token = localStorage.getItem("jwt");
+  //       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pixels/reserve`, {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //         body: JSON.stringify(selectedBlock),
+  //       });
 
+  //       if (!res.ok) throw new Error("Failed to reserve pixels");
 
+  //       const savedBlock = await res.json();
 
+  //       // Add to frontend reserved blocks
+  //       setReservedBlocks((prev) => [...prev, savedBlock]);
+  //       setSelectedBlock(null);
 
-// Pixel Reservation Handler
-// const handleConfirmReservation = () => {
-//   setIsConfirming(true); // Loader start
-//   setTimeout(async () => {
-//     try {
-//       if (!selectedBlock) return;
+  //       // Show confirmation message
+  //       setShowConfirmMessage(true);
 
-//       const token = localStorage.getItem("jwt");
-//       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pixels/reserve`, {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//           Authorization: `Bearer ${token}`,
-//         },
-//         body: JSON.stringify(selectedBlock),
-//       });
+  //       // Auto hide message after 3 seconds
+  //       setTimeout(() => setShowConfirmMessage(false), 3000);
 
-//       if (!res.ok) throw new Error("Failed to reserve pixels");
-
-//       const savedBlock = await res.json();
-
-//       // Add to frontend reserved blocks
-//       setReservedBlocks((prev) => [...prev, savedBlock]);
-//       setSelectedBlock(null);
-
-//       // Show confirmation message
-//       setShowConfirmMessage(true);
-
-//       // Auto hide message after 3 seconds
-//       setTimeout(() => setShowConfirmMessage(false), 3000);
-
-//     } catch (err) {
-//       console.error(err);
-//     } finally {
-//       setIsConfirming(false); // Loader stop
-//       setShowModal(false); // Close modal
-//     }
-//   }, 2000); // Keeps the loader visible for 2s
-// };
+  //     } catch (err) {
+  //       console.error(err);
+  //     } finally {
+  //       setIsConfirming(false); // Loader stop
+  //       setShowModal(false); // Close modal
+  //     }
+  //   }, 2000); // Keeps the loader visible for 2s
+  // };
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  useEffect(() => {
+  const fetchUser = async () => {
+    const token = localStorage.getItem("jwt");
+    if (!token) return router.push("/login");
 
-const handleConfirmReservation = async () => {
-  const token = localStorage.getItem("jwt");
+    const res = await fetch(`${API_URL}/user/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-  if (!token) {
-    router.push("/login");
-    return;
-  }
+    // if (!res.ok) return router.push("/login");
 
-  setIsConfirming(true);
+    const data = await res.json();
+    setUser(data); // make sure data has id & username
+  };
+  fetchUser();
+}, []);
 
-  setTimeout(async () => {
-    try {
-      if (!selectedBlock) return;
+  const handleConfirmReservation = async () => {
+    const token = localStorage.getItem("jwt");
 
-      const res = await fetch(`${API_URL}/pixels/reserve`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(selectedBlock),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("API Error:", res.status, text);
-        throw new Error("Failed to reserve pixels");
-      }
-
-      const savedBlock = await res.json();
-      setReservedBlocks((prev) => [...prev, savedBlock]);
-      setSelectedBlock(null);
-      setShowConfirmMessage(true);
-
-      setTimeout(() => setShowConfirmMessage(false), 3000);
-    } catch (err) {
-      console.error("Reservation Error:", err);
-      const errorMessage = (err as Error).message;
-      alert(`Something went wrong: ${errorMessage}`);
-    } finally {
-      setIsConfirming(false);
-      setShowModal(false);
+    if (!token) {
+      router.push("/login");
+      return;
     }
-  }, 1000);
-};
+
+    setIsConfirming(true);
+
+    setTimeout(async () => {
+      try {
+        if (!selectedBlock) return;
+
+        const res = await fetch(`${API_URL}/pixels/reserve`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(selectedBlock),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("API Error:", res.status, text);
+          throw new Error("Failed to reserve pixels");
+        }
+
+        const savedBlock = await res.json();
+        setReservedBlocks((prev) => [...prev, savedBlock]);
+        setSelectedBlock(null);
+        setShowConfirmMessage(true);
+
+        setTimeout(() => setShowConfirmMessage(false), 3000);
+      } catch (err) {
+        console.error("Reservation Error:", err);
+        const errorMessage = (err as Error).message;
+        alert(`Something went wrong: ${errorMessage}`);
+      } finally {
+        setIsConfirming(false);
+        setShowModal(false);
+      }
+    }, 1000);
+  };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!showStatusButtons) return; // Only allow selection if 'Buy Pixels' is clicked
@@ -287,39 +439,57 @@ const handleConfirmReservation = async () => {
     setIsSelecting(true);
   };
 
-  const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isSelecting || !selectionStart || !showStatusButtons) return;
+  const handleMouseUp = async (e: React.MouseEvent<HTMLDivElement>) => {
+  if (!isSelecting || !selectionStart || !showStatusButtons) return;
 
-    const rect = gridContainerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const xEnd = Math.floor((e.clientX - rect.left) / cellSize);
-    const yEnd = Math.floor((e.clientY - rect.top) / cellSize);
+  if (!user) {
+    alert("User not loaded yet.");
+    return;
+  }
 
-    const x1 = Math.min(selectionStart.x, xEnd);
-    const y1 = Math.min(selectionStart.y, yEnd);
-    const x2 = Math.max(selectionStart.x, xEnd);
-    const y2 = Math.max(selectionStart.y, yEnd);
+  const rect = gridContainerRef.current?.getBoundingClientRect();
+  if (!rect) return;
 
-    const width = x2 - x1 + 1;
-    const height = y2 - y1 + 1;
-    const totalPixels = width * height;
-    const price = totalPixels * 1; // $1 per pixel
+  const xEnd = Math.floor((e.clientX - rect.left) / cellSize);
+  const yEnd = Math.floor((e.clientY - rect.top) / cellSize);
 
-    setSelectionData({ width, height, totalPixels, price });
+  const x1 = Math.min(selectionStart.x, xEnd);
+  const y1 = Math.min(selectionStart.y, yEnd);
+  const x2 = Math.max(selectionStart.x, xEnd);
+  const y2 = Math.max(selectionStart.y, yEnd);
 
-    // NOTE: Generating a temporary block ID here for the reservation flow
+  const width = x2 - x1 + 1;
+  const height = y2 - y1 + 1;
+  const totalPixels = width * height;
+  const price = totalPixels * 1;
 
-    setSelectedBlock({
-      x: x1,
-      y: y1,
-      width: width,
-      height: height,
-      ownerId: user?.id
-});
-    setShowModal(true);
-    setIsSelecting(false);
-    setSelectionStart(null);
-  };
+  let imageurl: string | null = null;
+  try {
+    imageurl = await captureSelectedArea(x1, y1, width, height);
+    if (!imageurl) {
+      console.warn("⚠️ Image not captured — proceeding without preview.");
+    }
+  } catch (err) {
+    console.error("❌ Capture error:", err);
+    imageurl = null; // fallback
+  }
+
+  setSelectionData({ width, height, totalPixels, price });
+
+  setSelectedBlock({
+    x: x1,
+    y: y1,
+    width,
+    height,
+    ownerId: user.id, // must be defined
+    imageurl: imageurl!,          // must be valid
+  });
+
+  setShowModal(true);
+  setIsSelecting(false);
+  setSelectionStart(null);
+};
+
 
   // Fullscreen toggle using browser API
   const handleGridFullscreen = useCallback(() => {
@@ -453,7 +623,6 @@ const handleConfirmReservation = async () => {
             />
           </svg>
         </button>
-        
       </div>
     );
   };
@@ -553,10 +722,15 @@ const handleConfirmReservation = async () => {
     return lines;
   };
   console.log("showBuyPixels:", showBuyPixels);
-console.log("user:", user);
-console.log("selectionData:", selectionData);
+  // console.log("user:", ownerId);
+  console.log("username:", user?.username);
+   // logs the whole user object
+console.log("ownerId:", user?.id); // logs the user ID (ownerId)
+  console.log("selectionData:", selectionData);
+  console.log("Sending block to backend:", selectedBlock);
 
-// console.log("Supabase Session:", await supabase.auth.getSession());
+
+  // console.log("Supabase Session:", await supabase.auth.getSession());
   // Main grid fullscreen logic
   return (
     <div className="flex flex-col items-center w-[300px] sm:w-[600px] md:w-[800px] lg:w-[1200px] xl:w-[1800px]  bg-[#002320] min-h-screen px-2 sm:px-4">
@@ -570,14 +744,14 @@ console.log("selectionData:", selectionData);
         }`}
         // The style is mostly handled by classes now
       >
-        <TransformWrapper  
-        key={initialScale}
-  initialScale={initialScale}
-  minScale={initialScale}
-  maxScale={1}
-   wheel={{ disabled: true }}
-   panning={{ disabled: true }}
->
+        <TransformWrapper
+          key={initialScale}
+          initialScale={initialScale}
+          minScale={initialScale}
+          maxScale={1}
+          wheel={{ disabled: true }}
+          panning={{ disabled: true }}
+        >
           <>
             {/* --- Header - Responsive Layout --- */}
             <div className="absolute top-0 left-0 right-0 p-3 sm:p-4 bg-[#002320] text-white flex flex-col gap-2 z-50 shadow-lg border-b border-[#0e6c6c]">
@@ -637,8 +811,7 @@ console.log("selectionData:", selectionData);
                 // height: totalGridHeightPx,
                 width: "100%",
                 height: "100%",
-                
-                
+
                 // Removed fixed width/height and marginTop
                 cursor: magnifierMode ? "crosshair" : "grab",
                 touchAction: "none",
@@ -651,8 +824,8 @@ console.log("selectionData:", selectionData);
                 backgroundColor: "#002320",
                 backgroundSize: "10px 10px, 50px 50px",
                 position: "relative",
-                 transform: "scale(0.5)", // 👈 0.5 = half size grid
-  transformOrigin: "top left", // keep alignment correct
+                transform: "scale(0.5)", // 👈 0.5 = half size grid
+                transformOrigin: "top left", // keep alignment correct
               }}
             >
               <div
@@ -805,8 +978,9 @@ console.log("selectionData:", selectionData);
                           key={`mag-${block.id}`}
                           className={`absolute border border-gray-600 overflow-hidden ${
                             // block.ownerId?.includes("placeholder")
-                            block.ownerId && typeof block.ownerId === "string" && block.ownerId.includes("placeholder")
-
+                            block.ownerId &&
+                            typeof block.ownerId === "string" &&
+                            block.ownerId.includes("placeholder")
                               ? "bg-red-700 opacity-60"
                               : "bg-blue-600 opacity-50"
                           }`}
@@ -872,8 +1046,9 @@ console.log("selectionData:", selectionData);
                     key={block.id}
                     className={`absolute border border-gray-600 overflow-hidden ${
                       // block.ownerId?.includes("placeholder")
-                      block.ownerId && typeof block.ownerId === "string" && block.ownerId.includes("placeholder")
-
+                      block.ownerId &&
+                      typeof block.ownerId === "string" &&
+                      block.ownerId.includes("placeholder")
                         ? "bg-red-700 opacity-60"
                         : "bg-blue-600 opacity-50"
                     }`}
@@ -896,22 +1071,21 @@ console.log("selectionData:", selectionData);
               </div>
             </TransformComponent>
           </>
-          
         </TransformWrapper>
         {showBuyPixels && selectionData && (
-  <div className=" fixed inset-0 bg-black/60 flex justify-center items-center z-[9999]">
-    <div className="animate-fadeIn">
-      <BuyPixelsFallback
-        userId={user ? user.id : "guest"}
-        pixels={selectionData.totalPixels}
-        price={selectionData.price}
-        onClose={() => setShowBuyPixels(false)}
-      />
-    </div>
-  </div>
-)}
+          <div className=" fixed inset-0 bg-black/60 flex justify-center items-center z-[9999]">
+            <div className="animate-fadeIn">
+              <BuyPixelsFallback
+                userId={user ? user.id : "guest"}
+                pixels={selectionData.totalPixels}
+                price={selectionData.price}
+                onClose={() => setShowBuyPixels(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
-      
+
       {/* Modal - Already Responsive (fixed inset-0) */}
       {showModal && selectionData && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-[99999]">
@@ -959,14 +1133,14 @@ console.log("selectionData:", selectionData);
                 {isConfirming ? "Confirming..." : "Confirm Reservation"}
               </button>
               <button
-    onClick={() => {
-      setShowModal(false);          // Hide the reservation modal
-      setShowBuyPixels(true);       // Show BuyPixelsFallback component
-    }}
-    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition"
-  >
-    Buy
-  </button>
+                onClick={() => {
+                  setShowModal(false); // Hide the reservation modal
+                  setShowBuyPixels(true); // Show BuyPixelsFallback component
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition"
+              >
+                Buy
+              </button>
               <button
                 className="bg-red-600 hover:bg-red-700 text-black px-6 py-2 rounded-lg font-custom font-semibold transition"
                 onClick={() => setShowModal(false)}

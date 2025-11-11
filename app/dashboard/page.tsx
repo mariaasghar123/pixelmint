@@ -7,6 +7,7 @@ import MyAds from "./component/Myads";
 import QueryComponent from "./component/Query";
 import PurchaseHistory from "./component/PurchasePixel";
 import { motion } from "framer-motion";
+import PixelDetailsModal from "./component/Pixeldetail";
 
 // import { Link } from "lucide-react";
 import Link from "next/link";
@@ -18,6 +19,8 @@ interface User {
   phone?: string;
   pixelsBought?: number;
 }
+
+
 
 interface Pixel {
   x: number;
@@ -35,6 +38,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [pixels, setPixels] = useState<Pixel[]>([]);
+  const [selectedPixel, setSelectedPixel] = useState<Pixel | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -110,10 +114,11 @@ export default function Dashboard() {
           p-6 flex flex-col text-white shadow-xl transform transition-transform duration-300 z-40
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
         >
+          <Link href="/">
           <img
             src="/images/MyPixelMint1.svg"
             className="w-20 mx-auto hover:scale-110 transition-transform duration-300"
-          />
+          /> </Link>
 
           <div className="bg-white/10 p-4 rounded-xl text-center mt-6 shadow-lg hover:shadow-xl transition-all">
             <img
@@ -125,18 +130,23 @@ export default function Dashboard() {
 
           <nav className="mt-6 flex flex-col gap-3">
             {[
-  { label: "👤 Profile", click: () => setActivePage("profile") },
-  { label: "🎨 Your Pixels", click: () => setActivePage("pixels") },
-  { label: "💸 Purchases", click: () => setActivePage("purchases") },
-  { label: "📊 My Ads", click: () => setActivePage("myAds") },
-  { label: "❓ Query", click: () => setActivePage("query") },
+  {key: "profile", label: "👤 Profile", click: () => setActivePage("profile") },
+  {key: "pixels", label: "🎨 Your Pixels", click: () => setActivePage("pixels") },
+  {key: "purchases", label: "💸 Purchases", click: () => setActivePage("purchases") },
+  {key: "myAds", label: "📊 My Ads", click: () => setActivePage("myAds") },
+  {key: "query", label: "❓ Query", click: () => setActivePage("query") },
 ].map((item, i) => (
   <button
     key={i}
-    onClick={item.click}
-    className="hover:text-[#00ff88] px-2 py-2 rounded-lg text-left transition-all hover:bg-white/10"
-  >
-    {item.label}
+      onClick={item.click}
+      className={`px-3 py-2 rounded-lg text-left transition-all font-medium
+        ${
+          activePage === item.key
+            ? "bg-[#00ff8840] text-[#00ff88] border-l-4 border-[#00ff88] shadow-md"
+            : "text-white hover:text-[#00ff88] hover:bg-white/10"
+        }`}
+    >
+      {item.label}
   </button>
 ))}
 
@@ -194,59 +204,94 @@ export default function Dashboard() {
   {activePage === "purchases" && <PurchaseHistory />}
 
   {activePage === "pixels" && (
-    <div>
-      {/* Pixel Page */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
-        <div>
-          <h1 className="text-3xl font-bold">Buy Pixels</h1>
-          <p className="text-gray-300">Purchase pixels to display your ad</p>
-        </div>
-        <Link href="/">
-          <button className="bg-[#00ff88] text-black px-6 py-2 rounded-lg font-bold mt-2 md:mt-0">
-            Buy Pixels
-          </button>
-        </Link>
+  <div>
+    {/* Header Section */}
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <h1 className="text-3xl font-bold text-[#00ff88]">🎨 Your Purchased Pixels</h1>
+        <p className="text-gray-300">Click any row below to view full pixel details with image.</p>
       </div>
-
-      <div className="mt-8 bg-white/10 p-6 rounded-xl border border-gray-700">
-        <h2 className="text-xl font-semibold">🎨 Your Pixels</h2>
-        <p className="text-gray-300 mt-2">
-          Total Pixels Bought:{" "}
-          <span className="text-[#00ff88] font-bold">{pixels.length}</span>
-        </p>
-
-        {/* Pixel Table */}
-        <div className="mt-4 overflow-x-auto">
-          {pixels.length > 0 ? (
-            <table className="w-full text-sm text-left text-gray-300">
-              <thead className="text-gray-400 uppercase border-b border-gray-600">
-                <tr>
-                  <th className="px-4 py-2">X</th>
-                  <th className="px-4 py-2">Y</th>
-                  <th className="px-4 py-2">Width</th>
-                  <th className="px-4 py-2">Height</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pixels.map((pixel, index) => (
-                  <tr key={index} className="border-b border-gray-700">
-                    <td className="px-4 py-2">{pixel.x}</td>
-                    <td className="px-4 py-2">{pixel.y}</td>
-                    <td className="px-4 py-2">{pixel.width}</td>
-                    <td className="px-4 py-2">{pixel.height}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="text-gray-400 mt-4">No pixels purchased yet.</p>
-          )}
-        </div>
-      </div>
+      <Link href="/">
+        <button className="bg-[#00ff88] text-black px-6 py-2 rounded-lg font-bold hover:scale-105 transition">
+          + Buy More Pixels
+        </button>
+      </Link>
     </div>
-  )}
 
-  {activePage === "myAds" && <MyAds />}
+    {/* Summary */}
+    <div className="mt-6 bg-white/10 p-5 rounded-xl border border-gray-700 shadow-lg">
+      <p className="text-gray-300">
+        Total Pixels Bought:{" "}
+        <span className="text-[#00ff88] font-bold">{pixels.length}</span>
+      </p>
+    </div>
+
+    {/* Table Section */}
+    <div className="mt-6 overflow-x-auto rounded-xl border border-gray-700 shadow-md">
+      {pixels.length > 0 ? (
+        <table className="w-full text-sm text-left text-gray-300 border-collapse">
+          <thead className="bg-[#013c2c] text-gray-200 uppercase text-xs">
+            <tr>
+              <th className="px-5 py-3 border-b border-gray-700">Number</th>
+              <th className="px-5 py-3 border-b border-gray-700">X</th>
+              <th className="px-5 py-3 border-b border-gray-700">Y</th>
+              <th className="px-5 py-3 border-b border-gray-700">Width</th>
+              <th className="px-5 py-3 border-b border-gray-700">Height</th>
+              <th className="px-5 py-3 border-b border-gray-700">Preview</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {pixels.map((pixel, index) => (
+              <tr
+                key={index}
+                onClick={() => setSelectedPixel(pixel)} // 👈 Opens modal
+                className="border-b border-gray-700 hover:bg-[#00ff8820] cursor-pointer transition-all hover:scale-[1.01]"
+              >
+                <td className="px-5 py-3">{index + 1}</td>
+                <td className="px-5 py-3">{pixel.x}</td>
+                <td className="px-5 py-3">{pixel.y}</td>
+                <td className="px-5 py-3">{pixel.width}</td>
+                <td className="px-5 py-3">{pixel.height}</td>
+                <td className="px-5 py-3">
+                  {pixel.imageUrl ? (
+                    <img
+                      src={pixel.imageUrl}
+                      alt="Pixel preview"
+                      className="w-12 h-12 rounded-md object-cover border border-gray-600 hover:scale-110 transition-transform"
+                    />
+                  ) : (
+                    <span className="text-gray-500 italic">No image</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="text-gray-400 mt-6 text-center">No pixels purchased yet.</p>
+      )}
+    </div>
+
+    {/* Pixel Detail Modal */}
+    {selectedPixel && (
+      <PixelDetailsModal
+        pixel={selectedPixel}
+        onClose={() => setSelectedPixel(null)}
+      />
+    )}
+  </div>
+)}
+
+  {selectedPixel && (
+  <PixelDetailsModal
+    pixel={selectedPixel}
+    onClose={() => setSelectedPixel(null)}
+  />
+)}
+
+
+  {activePage === "myAds" && <MyAds onAdded={() => console.log("Ad added!")} />}
 
   {activePage === "query" && <QueryComponent onQuery={(queryText) => {
     console.log("User query:", queryText);
