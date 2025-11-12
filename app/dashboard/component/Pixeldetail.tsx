@@ -8,7 +8,7 @@ interface Pixel {
   y: number;
   width: number;
   height: number;
-  imageUrl?: string;
+  imageurl?: string;
 }
 
 interface PixelDetailsModalProps {
@@ -35,9 +35,9 @@ const PixelDetailsModal: React.FC<PixelDetailsModalProps> = ({ pixel, onClose })
 
         <h2 className="text-2xl font-bold mb-4 text-[#00ff88]">Pixel Details</h2>
 
-        {pixel.imageUrl && (
+        {pixel.imageurl && (
           <img
-            src={pixel.imageUrl}
+            src={pixel.imageurl}
             alt="Pixel"
             className="w-full h-48 object-cover rounded-lg border border-gray-700 mb-4"
           />

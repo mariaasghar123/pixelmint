@@ -62,7 +62,7 @@ const BuyerCard: React.FC<{ data: BuyerData }> = ({ data }) => {
     <div
       className={`relative w-[240px] sm:w-[260px] md:w-[220px] lg:w-[240px] 
       h-[220px] p-4 rounded-xl shadow-xl transition-all duration-300 
-      hover:shadow-2xl hover:scale-[1.02] border-2 ${borderColor} ${gradientClass} 
+      hover:shadow-2xl hover:scale-[1.0] border-2 ${borderColor} ${gradientClass} 
       snap-center flex-shrink-0 flex flex-col justify-between`}
     >
       <div className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-full bg-black bg-opacity-30">

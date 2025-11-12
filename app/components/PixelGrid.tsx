@@ -112,8 +112,7 @@ const PixelGrid = () => {
   const totalGridHeightPx = gridHeightCells * cellSize;
   const [reservedBlocks, setReservedBlocks] = useState<Block[]>([]);
   const [showPayment, setShowPayment] = useState(false);
-  // const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
-// State definition me ensure karo ke imageUrl bhi ho
+  
 const [selectedBlock, setSelectedBlock] = useState<{
   x: number;
   y: number;
@@ -138,7 +137,7 @@ const [selectedBlock, setSelectedBlock] = useState<{
   const gridContainerRef = useRef<HTMLDivElement | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [showConfirmMessage, setShowConfirmMessage] = useState(false);
-  // const [selectionData, setSelectionData] = useState<{ width: number; height: number; totalPixels: number; price: number } | null>(null);
+ 
 
   const handlePixelSelect = (width: number, height: number) => {
     const totalPixels = width * height;
@@ -147,134 +146,118 @@ const [selectedBlock, setSelectedBlock] = useState<{
     setShowBuyPixels(true); // trigger payment UI
   };
 
-//  const captureSelectedArea = async (x:number, y:number, width:number, height:number) => {
-//   if (!gridContainerRef.current) return null;
-
-//   // Ensure images are loaded
-//   await Promise.all(
-//     Array.from(gridContainerRef.current.querySelectorAll('img')).map(
-//       (img: HTMLImageElement) =>
-//         new Promise<void>((resolve) => {
-//           if (img.complete) resolve();
-//           else img.onload = () => resolve();
-//         })
-//     )
-//   );
-
-//   // Temporarily remove transform for correct capture
-//   const originalTransform = gridContainerRef.current.style.transform;
-//   gridContainerRef.current.style.transform = 'scale(1)';
-
-//   const canvas = await html2canvas(gridContainerRef.current, {
-//     useCORS: true,
-//     allowTaint: false,
-//     scale: 1,
-//   });
-
-//   // revert transform
-//   gridContainerRef.current.style.transform = originalTransform;
-
-//   // Crop selected area
-//   const croppedCanvas = document.createElement("canvas");
-//   const ctx = croppedCanvas.getContext("2d");
-//   croppedCanvas.width = width * cellSize;
-//   croppedCanvas.height = height * cellSize;
-
-//   const scale = 0.5; // match TransformComponent scale
-
-//   ctx?.drawImage(
-//     canvas,
-//     x * cellSize * scale,
-//     y * cellSize * scale,
-//     width * cellSize * scale,
-//     height * cellSize * scale,
-//     0,
-//     0,
-//     width * cellSize,
-//     height * cellSize
-//   );
-
-//   return croppedCanvas.toDataURL("image/png");
-// };
-
-const captureSelectedArea = async (x:number, y:number, width:number, height:number) => {
+const captureSelectedArea = async (x: number, y: number, width: number, height: number): Promise<string | null> => {
   if (!gridContainerRef.current) {
     console.error("Grid container not found");
     return null;
   }
 
   const container = gridContainerRef.current;
-
-  // Set CORS for images
-  Array.from(container.querySelectorAll("img")).forEach((img) => {
-    img.crossOrigin = "anonymous";
-  });
-
-  // Wait for all images to load
-  await Promise.all(
-    Array.from(container.querySelectorAll("img")).map(
-      (img) =>
-        new Promise((resolve) => {
-          img.onload = () => resolve(null);
-          img.onerror = () => {
-            console.warn("Image failed:", img.src);
-            resolve(null);
-          };
-          if (img.complete) resolve(null);
-        })
-    )
-  );
-
-  // Wait for DOM to settle
-  await new Promise((r) => setTimeout(r, 200));
-
-  const originalTransform = container.style.transform;
-  container.style.transform = "scale(1)";
-
-  let canvas;
+  
   try {
-    canvas = await html2canvas(container, {
+    // 1. Prepare images for capture
+    const imageLoadPromises = Array.from(container.querySelectorAll("img")).map((img) => {
+      img.crossOrigin = "anonymous";
+      
+      return new Promise<void>((resolve) => {
+        if (img.complete && img.naturalHeight !== 0) {
+          resolve();
+        } else {
+          img.onload = () => resolve();
+          img.onerror = () => {
+            console.warn("Image failed to load:", img.src);
+            resolve(); // Continue even if some images fail
+          };
+        }
+      });
+    });
+
+    // Wait for all images to load
+    await Promise.all(imageLoadPromises);
+    
+    // Small delay for DOM to settle
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // 2. Save original styles
+    const originalTransform = container.style.transform;
+    const originalOverflow = container.style.overflow;
+    
+    // 3. Apply temporary styles for clean capture
+    container.style.transform = "none";
+    container.style.overflow = "visible";
+
+    // 4. Calculate the exact area to capture
+    const scale = 1; // Adjust based on your zoom level
+    const captureX = x * cellSize * scale;
+    const captureY = y * cellSize * scale;
+    const captureWidth = width * cellSize * scale;
+    const captureHeight = height * cellSize * scale;
+
+    console.log(`Capturing area: ${captureX},${captureY} ${captureWidth}x${captureHeight}`);
+
+    // 5. Capture the entire grid
+    const canvas = await html2canvas(container, {
       useCORS: true,
       allowTaint: false,
       scale: 1,
       logging: true,
+      backgroundColor: '#002320',
+      width: totalGridWidthPx,
+      height: totalGridHeightPx,
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
     });
-  } catch (err) {
-    console.error("html2canvas failed:", err);
+
+    // 6. Restore original styles
     container.style.transform = originalTransform;
+    container.style.overflow = originalOverflow;
+
+    // 7. Create and crop to the selected area
+    const croppedCanvas = document.createElement("canvas");
+    const ctx = croppedCanvas.getContext("2d");
+    
+    if (!ctx) {
+      console.error("Could not get canvas context");
+      return null;
+    }
+
+    // Set cropped canvas size
+    croppedCanvas.width = width * cellSize;
+    croppedCanvas.height = height * cellSize;
+
+    // Draw only the selected portion
+    ctx.drawImage(
+      canvas,
+      captureX,      // source x
+      captureY,      // source y
+      captureWidth,  // source width
+      captureHeight, // source height
+      0,             // destination x
+      0,             // destination y
+      width * cellSize,  // destination width
+      height * cellSize  // destination height
+    );
+
+    // 8. Convert to data URL
+    const imageDataUrl = croppedCanvas.toDataURL("image/png", 0.8);
+    console.log("✅ Image captured successfully, length:", imageDataUrl.length);
+    
+    return imageDataUrl;
+
+  } catch (error) {
+    console.error("❌ Error in captureSelectedArea:", error);
+    
+    // Restore styles in case of error
+    if (gridContainerRef.current) {
+      gridContainerRef.current.style.transform = "none";
+      gridContainerRef.current.style.overflow = "visible";
+    }
+    
     return null;
   }
-
-  container.style.transform = originalTransform;
-
-  const croppedCanvas = document.createElement("canvas");
-  const ctx = croppedCanvas.getContext("2d");
-  if (!ctx) {
-    console.error("Canvas context missing");
-    return null;
-  }
-
-  croppedCanvas.width = width * cellSize;
-  croppedCanvas.height = height * cellSize;
-
-  const scale = 1; // adjust if using zoom
-  ctx.drawImage(
-    canvas,
-    x * cellSize * scale,
-    y * cellSize * scale,
-    width * cellSize * scale,
-    height * cellSize * scale,
-    0,
-    0,
-    width * cellSize,
-    height * cellSize
-  );
-
-  const result = croppedCanvas.toDataURL("image/png");
-  console.log("Capture success:", !!result);
-  return result;
 };
-
 
   const magnifierSize = 200;
   const [fullscreen, setFullscreen] = useState(false);
@@ -384,50 +367,56 @@ const [user, setUser] = useState<{ id: string; username: string } | null>(null);
 }, []);
 
   const handleConfirmReservation = async () => {
-    const token = localStorage.getItem("jwt");
+  const token = localStorage.getItem("jwt");
 
-    if (!token) {
-      router.push("/login");
-      return;
+  if (!token) {
+    router.push("/login");
+    return;
+  }
+
+  setIsConfirming(true);
+
+  try {
+    if (!selectedBlock) return;
+
+    // Ensure imageurl is included in the request
+    const blockData = {
+      ...selectedBlock,
+      imageurl: selectedBlock.imageurl || createFallbackImage(selectedBlock.width, selectedBlock.height)
+    };
+
+    console.log("📤 Sending to backend:", blockData);
+
+    const res = await fetch(`${API_URL}/pixels/reserve`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(blockData),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("API Error:", res.status, text);
+      throw new Error("Failed to reserve pixels");
     }
 
-    setIsConfirming(true);
+    const savedBlock = await res.json();
+    setReservedBlocks((prev) => [...prev, savedBlock]);
+    setSelectedBlock(null);
+    setShowConfirmMessage(true);
 
-    setTimeout(async () => {
-      try {
-        if (!selectedBlock) return;
-
-        const res = await fetch(`${API_URL}/pixels/reserve`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(selectedBlock),
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("API Error:", res.status, text);
-          throw new Error("Failed to reserve pixels");
-        }
-
-        const savedBlock = await res.json();
-        setReservedBlocks((prev) => [...prev, savedBlock]);
-        setSelectedBlock(null);
-        setShowConfirmMessage(true);
-
-        setTimeout(() => setShowConfirmMessage(false), 3000);
-      } catch (err) {
-        console.error("Reservation Error:", err);
-        const errorMessage = (err as Error).message;
-        alert(`Something went wrong: ${errorMessage}`);
-      } finally {
-        setIsConfirming(false);
-        setShowModal(false);
-      }
-    }, 1000);
-  };
+    setTimeout(() => setShowConfirmMessage(false), 3000);
+    
+  } catch (err) {
+    console.error("Reservation Error:", err);
+    alert(`Something went wrong: ${(err as Error).message}`);
+  } finally {
+    setIsConfirming(false);
+    setShowModal(false);
+  }
+};
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!showStatusButtons) return; // Only allow selection if 'Buy Pixels' is clicked
@@ -463,31 +452,65 @@ const [user, setUser] = useState<{ id: string; username: string } | null>(null);
   const totalPixels = width * height;
   const price = totalPixels * 1;
 
+  // Show loading state immediately
+  setSelectionData({ width, height, totalPixels, price });
+
   let imageurl: string | null = null;
+  
   try {
+    console.log(`🔄 Capturing image for area: ${x1},${y1} ${width}x${height}`);
     imageurl = await captureSelectedArea(x1, y1, width, height);
+    
     if (!imageurl) {
-      console.warn("⚠️ Image not captured — proceeding without preview.");
+      console.warn("⚠️ Image capture returned null - using fallback");
+      // Create a simple colored fallback image
+      imageurl = createFallbackImage(width, height);
     }
   } catch (err) {
     console.error("❌ Capture error:", err);
-    imageurl = null; // fallback
+    // Create fallback image on error
+    imageurl = createFallbackImage(width, height);
   }
 
-  setSelectionData({ width, height, totalPixels, price });
-
+  // Update selected block with captured image
   setSelectedBlock({
     x: x1,
     y: y1,
     width,
     height,
-    ownerId: user.id, // must be defined
-    imageurl: imageurl!,          // must be valid
+    ownerId: user.id,
+    imageurl: imageurl, // Now guaranteed to have a value
   });
 
   setShowModal(true);
   setIsSelecting(false);
   setSelectionStart(null);
+};
+
+// Fallback image creator function
+const createFallbackImage = (width: number, height: number): string => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width * cellSize;
+  canvas.height = height * cellSize;
+  
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    // Create a gradient background
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#002320');
+    gradient.addColorStop(1, '#024D45');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Add text
+    ctx.fillStyle = '#98F08C';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${width}×${height}`, canvas.width / 2, canvas.height / 2);
+  }
+  
+  return canvas.toDataURL("image/png");
 };
 
 

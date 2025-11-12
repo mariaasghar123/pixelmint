@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import AddAds from "./Addads";
 import EditAd from "./Editads";
+import { motion } from "framer-motion";
 
 interface Ad {
   id: string;
@@ -20,6 +21,8 @@ export default function MyAds({ onAdded }: MyAdsProps) {
   const [showAddAds, setShowAddAds] = useState(false);
   const [ads, setAds] = useState<Ad[]>([]);
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const [userId, setUserId] = useState<string>("");
 
 
@@ -44,11 +47,12 @@ export default function MyAds({ onAdded }: MyAdsProps) {
     if (!res.ok) {
       throw new Error(`Failed to fetch ads: ${res.status}`);
     }
-
     const data = await res.json();
     setAds(data);
   } catch (err) {
     console.error("Failed to fetch ads:", err);
+  } finally {
+    setLoading(false);
   }
 };
 
@@ -66,7 +70,8 @@ export default function MyAds({ onAdded }: MyAdsProps) {
         }),
       });
       const data = await res.json();
-      setAds((prev) => [...prev, data]);
+          // setAds(prev => [data, ...prev]);
+       setAds((prev) => [...prev ,newAd, data]);
     } catch (err) {
       console.error("Failed to add ad:", err);
     }
@@ -150,6 +155,34 @@ if (editingAd) {
                     userId={userId} // ✅ yeh add karo
 
       />
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-[#001f1a] via-[#002d22] to-[#001915] text-white">
+        <motion.div
+          className="w-16 h-16 border-4 border-t-4 border-t-green-400 border-gray-700 rounded-full"
+          animate={{ rotate: 360 }}
+          transition={{
+            repeat: Infinity,
+            duration: 1,
+            ease: "linear",
+          }}
+        ></motion.div>
+        <motion.p
+          className="mt-6 text-lg font-semibold tracking-wide text-green-300"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            repeat: Infinity,
+            repeatType: "reverse",
+            duration: 1.2,
+          }}
+        >
+          Loading...
+        </motion.p>
+      </div>
     );
   }
 
